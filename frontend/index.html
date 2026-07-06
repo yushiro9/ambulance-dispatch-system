@@ -393,6 +393,7 @@ textarea:focus-visible, [tabindex]:focus-visible, .ambOpt:focus-visible, .tabBtn
         <input type="date" id="boardDate" onchange="renderAll()">
         <button onclick="shiftDate(1)" aria-label="Next day">›</button>
       </div>
+      <button class="btn btn-ghost" onclick="refreshData()" title="Refresh data from server" style="font-weight:700;">↻ Refresh</button>
       <button class="btn btn-ghost" onclick="toggleAudit()">Audit log</button>
       <button class="btn btn-accent" onclick="openBookingModal()">+ New Transport</button>
       <div class="userChip">
@@ -1477,6 +1478,16 @@ window.loadData = async function() {
     const res = await fetch(`${API}/audit`, { headers: authHeaders() });
     window.auditLog = await res.json();
   } catch (e) { window.auditLog = []; console.error('Audit load error:', e); }
+};
+
+/* --- REFRESH DATA --- */
+window.refreshData = async function() {
+  const btn = document.querySelector('button[onclick="refreshData()"]');
+  if (btn) btn.style.opacity = '0.5';
+  await window.loadData();
+  window.renderAll();
+  if (btn) btn.style.opacity = '1';
+  window.toast('Data refreshed successfully.', 'ok', 'Refreshed');
 };
 
 /* --- NO-OPS (backend handles persistence) --- */
