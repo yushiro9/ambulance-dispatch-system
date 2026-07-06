@@ -1346,36 +1346,72 @@ function renderList(){
 
 function renderApprovalQueue(){
   if(!isSuperAdmin()) return;
+  
   const pending = bookings.filter(b=>b.status==='Pending').sort((a,b)=>new Date(a.scheduledStart)-new Date(b.scheduledStart));
+  const decided = bookings.filter(b=>b.status==='Approved' || b.status==='Rejected').sort((a,b)=>new Date(b.updatedAt || b.createdAt)-new Date(a.updatedAt || a.createdAt)).slice(0, 20); // show top 20 recent
+  
   const c = document.getElementById('queueContainer');
-  if(pending.length===0){ c.innerHTML = '<div class="empty">No requests awaiting approval.</div>'; return; }
-  const now = Date.now();
-  c.innerHTML = pending.map(b=>{
-    const start = new Date(b.scheduledStart).getTime();
-    const hrsUntil = (start-now)/3600000;
-    const ambLabel = AMBULANCES.find(a=>a.id===b.ambulance)?.label || b.ambulance;
-    const conflictNow = !isAmbulanceAvailable(b.ambulance, start, new Date(b.scheduledEnd).getTime(), b.id);
-    let flag = '';
-    if(hrsUntil < 0) flag = '<span class="flag">Overdue</span>';
-    else if(hrsUntil < 6) flag = '<span class="flag">Urgent — under 6h</span>';
-    if(conflictNow) flag += ' <span class="flag" style="background:var(--violet);">New conflict</span>';
-    return `<div class="queueCard">
-      <div class="queueTop">
-        <div>
-          <b>${maskName(b.patientName)}</b> ${flag}
-          <div class="queueMeta">${b.procedure} → ${b.destination}</div>
-          <div class="queueMeta mono">${new Date(b.scheduledStart).toLocaleString()} · ${ambLabel} · ${b.durationMin} min</div>
-          <div class="queueMeta">Requested by ${b.requestedBy} · Caller: ${b.callerName} (${b.callerWard})</div>
+  let html = '';
+  
+  // PENDING SECTION
+  html += '<h3 style="margin-bottom:12px; color:var(--fog);">Needs Action</h3>';
+  if(pending.length===0){ 
+    html += '<div class="empty" style="margin-bottom:24px;">No requests awaiting approval.</div>'; 
+  } else {
+    const now = Date.now();
+    html += pending.map(b=>{
+      const start = new Date(b.scheduledStart).getTime();
+      const hrsUntil = (start-now)/3600000;
+      const ambLabel = AMBULANCES.find(a=>a.id===b.ambulance)?.label || b.ambulance;
+      const conflictNow = !isAmbulanceAvailable(b.ambulance, start, new Date(b.scheduledEnd).getTime(), b.id);
+      let flag = '';
+      if(hrsUntil < 0) flag = '<span class="flag">Overdue</span>';
+      else if(hrsUntil < 6) flag = '<span class="flag">Urgent — under 6h</span>';
+      if(conflictNow) flag += ' <span class="flag" style="background:var(--violet);">New conflict</span>';
+      return `<div class="queueCard">
+        <div class="queueTop">
+          <div>
+            <b>${maskName(b.patientName)}</b> ${flag}
+            <div class="queueMeta">${b.procedure} → ${b.destination}</div>
+            <div class="queueMeta mono">${new Date(b.scheduledStart).toLocaleString()} · ${ambLabel} · ${b.durationMin} min</div>
+            <div class="queueMeta">Requested by ${b.requestedBy} · Caller: ${b.callerName} (${b.callerWard})</div>
+          </div>
+          <span class="badge Pending">Pending</span>
         </div>
-        <span class="badge Pending">Pending</span>
-      </div>
-      <div class="queueActions">
-        <button class="btn btn-sm btn-approve" onclick="approveBooking('${b.id}')">Approve</button>
-        <button class="btn btn-sm btn-reject" onclick="rejectBooking('${b.id}')">Reject</button>
-        <button class="btn btn-sm btn-ghost" onclick="openDetailModal('${b.id}')">Full details</button>
-      </div>
-    </div>`;
-  }).join('');
+        <div class="queueActions">
+          <button class="btn btn-sm btn-approve" onclick="approveBooking('${b.id}')">Approve</button>
+          <button class="btn btn-sm btn-reject" onclick="rejectBooking('${b.id}')">Reject</button>
+          <button class="btn btn-sm btn-ghost" onclick="openDetailModal('${b.id}')">Full details</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  
+  // RECENT DECISIONS SECTION
+  html += '<h3 style="margin-top:24px; margin-bottom:12px; color:var(--fog); border-top:1px solid var(--line); padding-top:16px;">Recent Decisions</h3>';
+  if(decided.length===0){
+    html += '<div class="empty">No recent decisions.</div>';
+  } else {
+    html += decided.map(b=>{
+      const ambLabel = AMBULANCES.find(a=>a.id===b.ambulance)?.label || b.ambulance;
+      return `<div class="queueCard" style="opacity:0.8;">
+        <div class="queueTop">
+          <div>
+            <b>${maskName(b.patientName)}</b>
+            <div class="queueMeta">${b.procedure} → ${b.destination}</div>
+            <div class="queueMeta mono">${new Date(b.scheduledStart).toLocaleString()} · ${ambLabel}</div>
+            ${b.cancelReason ? `<div class="queueMeta" style="color:var(--red);">Reason: ${b.cancelReason}</div>` : ''}
+          </div>
+          <span class="badge ${b.status}">${b.status}</span>
+        </div>
+        <div class="queueActions">
+          <button class="btn btn-sm btn-ghost" onclick="openDetailModal('${b.id}')">Full details</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  
+  c.innerHTML = html;
 }
 
 function renderAudit(){
