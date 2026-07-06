@@ -134,7 +134,7 @@ module.exports = async function handler(req, res) {
     try {
       const result = await db.query(
         `UPDATE bookings 
-         SET status = $1, cancel_reason = $2, updated_at = now(), decided_by = $3, decided_at = CASE WHEN $1 IN ('Approved','Rejected') THEN now() ELSE decided_at END
+         SET status = $1, cancel_reason = $2, updated_at = now(), decided_by = $3, decided_at = CASE WHEN $1::text IN ('Approved','Rejected') THEN now() ELSE decided_at END
          WHERE id = $4 RETURNING *`,
         [status, cancel_reason || null, ['Approved', 'Rejected'].includes(status) ? user.id : null, bookingId]
       );
