@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "rewrites": [
+    { "source": "/api/auth/:path*",     "destination": "/api/auth" },
+    { "source": "/api/bookings/:path*", "destination": "/api/bookings" },
+    { "source": "/api/audit/:path*",    "destination": "/api/audit" },
+    { "source": "/(.*)",                "destination": "/frontend/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options",        "value": "DENY" },
+        { "key": "X-XSS-Protection",       "value": "1; mode=block" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Environment variables — NEVER commit these
+.env
+backend/.env
+
+# Logs
+*.log
+logs/
+
+# SQLite dev artifacts
+*.sqlite
+*.sqlite3
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+dist/
+.vercel/

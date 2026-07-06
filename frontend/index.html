@@ -1,0 +1,1610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Ambulance Dispatch Board</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root{
+  --ink:#0F1B2D;
+  --panel:#17263D;
+  --panel-light:#1F3350;
+  --panel-lighter:#28405f;
+  --fog:#93A4BB;
+  --paper:#EDF1F7;
+  --teal:#2FBF9F;
+  --teal-dim:rgba(47,191,159,0.18);
+  --amber:#F2A93B;
+  --amber-dim:rgba(242,169,59,0.18);
+  --red:#E4572E;
+  --red-dim:rgba(228,87,46,0.18);
+  --violet:#8E7CF0;
+  --violet-dim:rgba(142,124,240,0.18);
+  --line: rgba(255,255,255,0.09);
+}
+/* ---------- Light mode override (same variable names, different values) ---------- */
+html[data-theme="light"]{
+  --ink:#F3F5F9;
+  --panel:#FFFFFF;
+  --panel-light:#F3F6FA;
+  --panel-lighter:#E7ECF3;
+  --fog:#5C6B80;
+  --paper:#152238;
+  --line: rgba(21,34,56,0.12);
+}
+html[data-theme="light"] .brand .mark{ color:#04231b; }
+html[data-theme="light"] .block.status-Completed{ color:#3d4c63; }
+*{box-sizing:border-box;}
+body{
+  margin:0;
+  background:var(--ink);
+  color:var(--paper);
+  font-family:'Inter',sans-serif;
+  min-height:100vh;
+  transition:background .15s ease, color .15s ease;
+}
+.mono{font-family:'IBM Plex Mono',monospace;}
+.display{font-family:'Barlow Condensed',sans-serif; text-transform:uppercase; letter-spacing:0.04em;}
+
+/* ---------- Login gate ---------- */
+#loginGate{
+  position:fixed; inset:0; background:var(--ink);
+  display:flex; align-items:center; justify-content:center; z-index:500;
+  flex-direction:column;
+}
+.loginCard{
+  background:var(--panel); border:1px solid var(--line); border-radius:6px;
+  padding:36px 40px; width:360px;
+}
+.loginCard h1{font-size:28px; margin:0 0 4px; font-weight:700;}
+.loginCard p.sub{color:var(--fog); font-size:13px; margin:0 0 24px;}
+.field label{display:block; font-size:11px; color:var(--fog); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:6px;}
+.field input, .field select, .field textarea{
+  width:100%; background:var(--ink); border:1px solid var(--line); color:var(--paper);
+  padding:10px 12px; border-radius:4px; font-size:14px; font-family:inherit; margin-bottom:16px;
+}
+.field input:focus, .field select:focus, .field textarea:focus{outline:2px solid var(--teal); outline-offset:1px;}
+.btn{
+  border:none; border-radius:4px; padding:11px 18px; font-weight:600; font-size:13px;
+  cursor:pointer; font-family:'Inter',sans-serif; letter-spacing:0.02em;
+}
+.btn-primary{background:var(--teal); color:#04231b; width:100%;}
+.btn-primary:hover{background:#3fd4b1;}
+.loginNote{color:var(--fog); font-size:11px; margin-top:14px; line-height:1.5; border-top:1px solid var(--line); padding-top:14px;}
+.roleTabs{display:flex; gap:8px; margin-bottom:18px;}
+.roleTab{flex:1; text-align:center; padding:8px; border:1px solid var(--line); border-radius:5px; font-size:12px; cursor:pointer; color:var(--fog);}
+.roleTab.active{border-color:var(--teal); color:var(--teal); background:var(--teal-dim);}
+
+/* ---------- App shell ---------- */
+#app{display:none; max-width:1220px; margin:0 auto; padding:0 20px 60px;}
+header.topbar{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:22px 0 18px; border-bottom:1px solid var(--line); margin-bottom:18px; gap:16px; flex-wrap:wrap;
+}
+.brand{display:flex; align-items:center; gap:12px;}
+.brand .mark{
+  width:38px; height:38px; border-radius:8px; background:linear-gradient(155deg,var(--teal),#1c8a71);
+  display:flex; align-items:center; justify-content:center; font-weight:700; color:#04231b; font-size:16px;
+}
+.brand h1{font-size:22px; margin:0; font-weight:700; line-height:1;}
+.brand .tag{color:var(--fog); font-size:11px; letter-spacing:0.08em; text-transform:uppercase; margin-top:3px;}
+.topActions{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
+.dateNav{display:flex; align-items:center; gap:8px; background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:6px 10px;}
+.dateNav button{background:none; border:none; color:var(--fog); font-size:16px; cursor:pointer; padding:2px 6px;}
+.dateNav button:hover{color:var(--paper);}
+.dateNav input[type=date]{background:none; border:none; color:var(--paper); font-family:'IBM Plex Mono',monospace; font-size:13px;}
+.togglePriv{display:flex; align-items:center; gap:8px; font-size:12px; color:var(--fog); cursor:pointer; user-select:none;}
+.switch{width:34px; height:19px; background:var(--panel-lighter); border-radius:20px; position:relative; transition:.2s;}
+.switch::after{content:''; position:absolute; top:2px; left:2px; width:15px; height:15px; border-radius:50%; background:var(--fog); transition:.2s;}
+.switch.on{background:var(--teal-dim);}
+.switch.on::after{background:var(--teal); left:17px;}
+.btn-accent{background:var(--amber); color:#3a2400;}
+.btn-accent:hover{background:#ffbd57;}
+.btn-ghost{background:transparent; border:1px solid var(--line); color:var(--paper);}
+.btn-ghost:hover{border-color:var(--fog);}
+.btn-approve{background:var(--teal); color:#04231b;}
+.btn-reject{background:var(--red); color:#3a0e02;}
+.btn-sm{padding:6px 12px; font-size:12px;}
+.userChip{font-size:12px; color:var(--fog); display:flex; align-items:center; gap:6px;}
+.userChip b{color:var(--paper); font-weight:600;}
+.userChip .roleBadge{background:var(--violet-dim); color:var(--violet); padding:2px 8px; border-radius:20px; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em;}
+.userChip a{color:var(--red); text-decoration:none; margin-left:4px; cursor:pointer;}
+
+/* tabs */
+.tabRow{display:flex; gap:6px; margin-bottom:18px; border-bottom:1px solid var(--line);}
+.tabBtn{background:none; border:none; color:var(--fog); font-size:13px; font-weight:600; padding:10px 4px; cursor:pointer; border-bottom:2px solid transparent; margin-right:18px;}
+.tabBtn.active{color:var(--paper); border-color:var(--teal);}
+.tabBtn .pill{background:var(--amber); color:#3a2400; border-radius:20px; font-size:10px; padding:1px 7px; margin-left:6px; font-weight:700;}
+.tabPane{display:none;}
+.tabPane.active{display:block;}
+
+/* legend */
+.legend{display:flex; gap:18px; margin-bottom:14px; flex-wrap:wrap;}
+.legend span{display:flex; align-items:center; gap:6px; font-size:12px; color:var(--fog);}
+.swatch{width:11px; height:11px; border-radius:3px; display:inline-block;}
+
+/* board */
+.board{background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:20px; margin-bottom:26px;}
+.boardHead{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:16px;}
+.boardHead h2{font-size:20px; margin:0; font-weight:600;}
+.boardHead .cnt{color:var(--fog); font-size:12px;}
+.lane{margin-bottom:22px;}
+.laneLabel{display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; margin-bottom:8px;}
+.dot{width:8px; height:8px; border-radius:50%;}
+.timeline{
+  position:relative; height:64px; background:var(--ink); border-radius:6px; border:1px solid var(--line); overflow:hidden;
+}
+.tick{position:absolute; top:0; bottom:0; width:1px; background:var(--line);}
+.tickLabel{position:absolute; top:2px; font-size:9px; color:var(--fog); font-family:'IBM Plex Mono',monospace; transform:translateX(2px);}
+.block{
+  position:absolute; top:10px; height:44px; border-radius:5px; padding:5px 8px; font-size:11px;
+  overflow:hidden; cursor:pointer; border:1px solid transparent; line-height:1.25;
+}
+.block.status-Pending{background:var(--amber-dim); border-color:var(--amber); color:#ffd98f;}
+.block.status-Approved{background:var(--teal-dim); border-color:var(--teal); color:#a6f2df;}
+.block.status-Completed{background:var(--panel-lighter); border-color:var(--line); color:var(--fog);}
+.block.status-Rejected{background:var(--red-dim); border-color:var(--red); color:#ffb3a0;}
+.block.status-Cancelled{background:var(--red-dim); border-color:var(--red); color:#ffb3a0; text-decoration:line-through; opacity:0.7;}
+.block b{display:block; font-weight:600; font-size:11.5px;}
+.buffer{position:absolute; top:10px; height:44px; background:repeating-linear-gradient(45deg, rgba(255,255,255,0.03), rgba(255,255,255,0.03) 4px, transparent 4px, transparent 8px);}
+.emptyBoard{color:var(--fog); font-size:13px; padding:14px 0;}
+
+/* list */
+.panel{background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:20px; margin-bottom:26px;}
+.panelHead{display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;}
+.panelHead h2{font-size:18px; margin:0; font-weight:600;}
+table{width:100%; border-collapse:collapse; font-size:13px;}
+th{text-align:left; color:var(--fog); font-weight:600; font-size:10.5px; text-transform:uppercase; letter-spacing:0.05em; padding:8px 10px; border-bottom:1px solid var(--line);}
+td{padding:10px; border-bottom:1px solid var(--line); vertical-align:top;}
+tr:last-child td{border-bottom:none;}
+tr.urgent{background:rgba(228,87,46,0.06);}
+.badge{padding:3px 8px; border-radius:20px; font-size:10.5px; font-weight:600; display:inline-block;}
+.badge.Pending{background:var(--amber-dim); color:var(--amber);}
+.badge.Approved{background:var(--teal-dim); color:var(--teal);}
+.badge.Completed{background:var(--panel-lighter); color:var(--fog);}
+.badge.Rejected{background:var(--red-dim); color:var(--red);}
+.badge.Cancelled{background:var(--red-dim); color:var(--red);}
+.flag{background:var(--red); color:#fff; font-size:9.5px; font-weight:700; padding:2px 6px; border-radius:20px; margin-left:6px; text-transform:uppercase;}
+.rowActions button{background:none; border:none; color:var(--fog); cursor:pointer; font-size:12px; margin-right:10px; text-decoration:underline; padding:0;}
+.rowActions button:hover{color:var(--paper);}
+.rowActions .approveLink{color:var(--teal); text-decoration:none; font-weight:600;}
+.rowActions .rejectLink{color:var(--red); text-decoration:none; font-weight:600;}
+.empty{color:var(--fog); font-size:13px; padding:8px 0;}
+
+/* modal */
+.overlay{position:fixed; inset:0; background:rgba(4,10,20,0.7); display:none; align-items:flex-start; justify-content:center; z-index:400; overflow-y:auto; padding:40px 16px;}
+.overlay.show{display:flex;}
+.modal{background:var(--panel); border:1px solid var(--line); border-radius:10px; width:100%; max-width:660px; padding:28px 30px 30px;}
+.modal h2{margin:0 0 4px; font-size:20px;}
+.modal p.sub{color:var(--fog); font-size:12.5px; margin:0 0 20px;}
+.grid2{display:grid; grid-template-columns:1fr 1fr; gap:0 16px;}
+.notice{border-radius:6px; padding:10px 12px; font-size:12.5px; margin-bottom:16px; display:none;}
+.notice.error{background:var(--red-dim); color:#ffb3a0; display:block;}
+.notice.ok{background:var(--teal-dim); color:#a6f2df; display:block;}
+.notice.warn{background:var(--amber-dim); color:#ffd98f; display:block;}
+.sectionLabel{font-size:11px; text-transform:uppercase; letter-spacing:0.06em; color:var(--fog); margin:18px 0 8px; border-top:1px solid var(--line); padding-top:14px;}
+.sectionLabel:first-of-type{border-top:none; padding-top:0; margin-top:0;}
+.modalActions{display:flex; justify-content:flex-end; gap:10px; margin-top:6px;}
+.ambPick{display:flex; gap:10px; margin-bottom:16px;}
+.ambOpt{flex:1; border:1px solid var(--line); border-radius:6px; padding:10px; cursor:pointer; text-align:center; font-size:12.5px;}
+.ambOpt.avail{border-color:var(--teal); color:var(--teal);}
+.ambOpt.busy{border-color:var(--line); color:var(--fog); cursor:not-allowed; opacity:0.5;}
+.ambOpt.selected{background:var(--teal-dim); font-weight:700;}
+.disclaimer{font-size:11px; color:var(--fog); background:var(--ink); border:1px solid var(--line); border-radius:6px; padding:10px 12px; margin-bottom:18px; line-height:1.5;}
+.disclaimer b{color:var(--amber);}
+.suggestBox{background:var(--ink); border:1px solid var(--line); border-radius:6px; padding:10px 12px; margin-bottom:16px; font-size:12.5px;}
+.suggestBox button{margin-top:8px;}
+
+/* detail modal */
+.detailGrid{display:grid; grid-template-columns:1fr 1fr; gap:14px 24px; margin-bottom:8px;}
+.detailItem .k{font-size:10.5px; color:var(--fog); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:3px;}
+.detailItem .v{font-size:14px; color:var(--paper);}
+.detailFull{grid-column:1 / -1;}
+.trailBox{max-height:180px; overflow-y:auto; margin-top:6px;}
+
+/* audit drawer */
+#auditDrawer{display:none;}
+.auditItem{font-size:12px; padding:9px 0; border-bottom:1px solid var(--line); color:var(--fog);}
+.auditItem b{color:var(--paper);}
+.auditItem .ts{font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--fog); display:block; margin-top:2px;}
+
+/* approval queue */
+.queueCard{border:1px solid var(--line); border-radius:8px; padding:16px; margin-bottom:12px; background:var(--ink);}
+.queueTop{display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;}
+.queueMeta{font-size:12px; color:var(--fog); margin-top:4px;}
+.queueActions{display:flex; gap:8px; margin-top:12px;}
+
+/* ---------- accessibility: focus ---------- */
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible,
+textarea:focus-visible, [tabindex]:focus-visible, .ambOpt:focus-visible, .tabBtn:focus-visible{
+  outline:2px solid var(--teal); outline-offset:2px; border-radius:3px;
+}
+.visually-hidden{position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;}
+.skipLink{position:absolute; left:8px; top:-48px; background:var(--teal); color:#04231b; padding:10px 14px; border-radius:6px; font-size:13px; font-weight:600; z-index:1000; transition:top .15s;}
+.skipLink:focus{top:8px;}
+
+/* ---------- required-field marker & inline field errors ---------- */
+.reqStar{color:var(--red); margin-left:2px;}
+.field input.invalid, .field select.invalid, .field textarea.invalid{
+  border-color:var(--red); box-shadow:0 0 0 1px var(--red);
+}
+.fieldErr{color:#ffb3a0; font-size:11.5px; margin:-12px 0 14px; display:none;}
+.fieldErr.show{display:block;}
+
+/* ---------- password field with show/hide ---------- */
+.pwWrap{position:relative;}
+.pwWrap input{padding-right:56px;}
+.pwToggle{
+  position:absolute; right:6px; top:50%; transform:translateY(-50%);
+  background:none; border:none; color:var(--fog); font-size:11px; cursor:pointer;
+  padding:6px 8px; text-transform:uppercase; letter-spacing:0.04em; font-weight:600;
+}
+.pwToggle:hover{color:var(--paper);}
+
+/* ---------- toasts ---------- */
+#toastRegion{position:fixed; top:18px; right:18px; z-index:900; display:flex; flex-direction:column; gap:10px; max-width:340px;}
+.toast{
+  background:var(--panel-light); border:1px solid var(--line); border-left:4px solid var(--teal);
+  color:var(--paper); border-radius:6px; padding:12px 14px; font-size:13px; line-height:1.4;
+  box-shadow:0 8px 24px rgba(0,0,0,0.35); animation:toastIn .18s ease-out;
+}
+.toast.error{border-left-color:var(--red);}
+.toast.warn{border-left-color:var(--amber);}
+.toast b{display:block; margin-bottom:2px; font-size:12.5px;}
+@keyframes toastIn{ from{opacity:0; transform:translateY(-6px);} to{opacity:1; transform:translateY(0);} }
+
+/* ---------- confirm dialog ---------- */
+.confirmModal{background:var(--panel); border:1px solid var(--line); border-radius:10px; width:100%; max-width:420px; padding:24px 26px 22px;}
+.confirmModal h2{margin:0 0 8px; font-size:18px;}
+.confirmModal p{color:var(--fog); font-size:13px; line-height:1.5; margin:0 0 16px;}
+.confirmModal .field{margin-bottom:0;}
+.confirmModal textarea{width:100%; background:var(--ink); border:1px solid var(--line); color:var(--paper); padding:10px 12px; border-radius:4px; font-size:13px; font-family:inherit; margin-bottom:6px; resize:vertical;}
+.confirmActions{display:flex; justify-content:flex-end; gap:10px; margin-top:16px;}
+
+/* ---------- loading state ---------- */
+.loadingRow{display:flex; align-items:center; gap:10px; color:var(--fog); font-size:13px; padding:20px 0;}
+.spinner{width:16px; height:16px; border:2px solid var(--line); border-top-color:var(--teal); border-radius:50%; animation:spin .7s linear infinite;}
+@keyframes spin{ to{ transform:rotate(360deg); } }
+
+/* ---------- filter bar ---------- */
+.filterBar{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px;}
+.filterBar input[type=search], .filterBar select{
+  background:var(--ink); border:1px solid var(--line); color:var(--paper);
+  padding:8px 12px; border-radius:6px; font-size:13px; font-family:inherit;
+}
+.filterBar input[type=search]{flex:1; min-width:180px;}
+.filterBar .clearFilters{background:none; border:1px solid var(--line); color:var(--fog); border-radius:6px; padding:8px 12px; font-size:12.5px; cursor:pointer;}
+.filterBar .clearFilters:hover{color:var(--paper); border-color:var(--fog);}
+
+/* ---------- timeline: keyboard + touch friendly ---------- */
+.timelineScroll{overflow-x:auto; -webkit-overflow-scrolling:touch;}
+.block:focus-visible{outline:2px solid var(--paper); outline-offset:1px; z-index:2;}
+
+/* ---------- gap rule info box ---------- */
+.ruleInfo{font-size:11.5px; color:var(--fog); background:var(--ink); border:1px solid var(--line); border-radius:6px; padding:8px 12px; margin-bottom:14px; line-height:1.5;}
+.ruleInfo b{color:var(--paper);}
+
+/* ---------- calendar tab ---------- */
+.calGrid{display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-top:4px;}
+.calWeekday{font-size:10.5px; color:var(--fog); text-transform:uppercase; letter-spacing:0.04em; text-align:center; padding:4px 0 8px;}
+.calDay{
+  position:relative; border:1px solid var(--line); border-radius:7px; padding:8px 7px 26px;
+  min-height:58px; cursor:pointer; background:var(--ink); transition:border-color .15s ease;
+}
+.calDay:hover{border-color:var(--fog);}
+.calDay:focus-visible{outline:2px solid var(--teal); outline-offset:2px;}
+.calDay.empty{visibility:hidden; cursor:default; border:none;}
+.calDay .num{font-weight:700; font-size:13px; font-family:'IBM Plex Mono',monospace;}
+.calDay .cnt{font-size:10px; color:var(--fog); margin-top:2px;}
+.calDay.today{border-color:var(--violet); box-shadow:0 0 0 1px var(--violet);}
+.calDay .stat{
+  position:absolute; bottom:6px; left:6px; right:6px; font-size:9px; padding:2px 4px;
+  border-radius:4px; text-align:center; font-weight:700; text-transform:uppercase; letter-spacing:0.03em;
+}
+.calDay .stat.open{background:var(--teal-dim); color:var(--teal);}
+.calDay .stat.limited{background:var(--amber-dim); color:var(--amber);}
+.calDay .stat.full{background:var(--red-dim); color:var(--red);}
+.calLegendNote{color:var(--fog); font-size:11.5px; margin-top:12px;}
+.calMonthNav{display:flex; align-items:center; gap:8px;}
+.calMonthNav span{min-width:150px; text-align:center; display:inline-block; font-family:'IBM Plex Mono',monospace; font-size:13px;}
+
+@media (max-width:640px){
+  .grid2, .detailGrid{grid-template-columns:1fr;}
+  .topActions{width:100%; justify-content:space-between;}
+  .timeline, .tick, .tickLabel, .block, .buffer{ min-width:900px; }
+  .timelineScroll .timeline{width:900px;}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN GATE (demo only — see note) -->
+<div id="loginGate">
+  <form class="loginCard" onsubmit="event.preventDefault(); attemptLogin();">
+    <h1 class="display">Dispatch<br>Access</h1>
+    <p class="sub">Non-emergency ambulance transport scheduling</p>
+    <div id="loginError" class="notice error" role="alert" style="display:none;"></div>
+    <div class="field">
+      <label for="loginUser">Username</label>
+      <input id="loginUser" type="text" autocomplete="username" placeholder="admin" autofocus>
+    </div>
+    <div class="field">
+      <label for="loginPass">Password</label>
+      <div class="pwWrap">
+        <input id="loginPass" type="password" autocomplete="current-password" placeholder="••••••••">
+        <button type="button" class="pwToggle" id="pwToggleBtn" onclick="togglePwVisibility()" aria-label="Show password">Show</button>
+      </div>
+    </div>
+    <button type="submit" class="btn btn-primary">Sign in</button>
+    <details class="loginNote">
+      <summary style="cursor:pointer; color:var(--paper);">Demo credentials &amp; notes</summary>
+      <div style="margin-top:10px;">
+        Scheduler — admin / dispatch123<br>
+        Super Admin — superadmin / Super#2026<br><br>
+        This login screen is a front-end simulation for demonstration only. A production deployment must replace it with real server-side authentication, hashed credentials, MFA, and role checks enforced on every API call — not just in the interface.
+      </div>
+    </details>
+  </form>
+</div>
+
+<a href="#mainContent" class="skipLink">Skip to main content</a>
+<div id="toastRegion" aria-live="polite" aria-atomic="true"></div>
+
+<!-- CONFIRM / REASON DIALOG (replaces browser alert/prompt) -->
+<div class="overlay" id="confirmOverlay" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+  <div class="confirmModal">
+    <h2 id="confirmTitle">Confirm action</h2>
+    <p id="confirmMessage"></p>
+    <div class="field" id="confirmReasonWrap" style="display:none;">
+      <label for="confirmReasonInput">Reason</label>
+      <textarea id="confirmReasonInput" rows="3"></textarea>
+      <div class="fieldErr" id="confirmReasonErr">A reason is required to continue.</div>
+    </div>
+    <div class="confirmActions">
+      <button class="btn btn-ghost" id="confirmCancelBtn" onclick="closeConfirm(false)">Never mind</button>
+      <button class="btn btn-primary" style="width:auto;" id="confirmOkBtn" onclick="handleConfirmOk()">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <header class="topbar" id="mainContent">
+    <div class="brand">
+      <div class="mark display">AD</div>
+      <div>
+        <h1>Ambulance Dispatch</h1>
+        <div class="tag">Non-emergency transport · Scheduled procedures only</div>
+      </div>
+    </div>
+    <div class="topActions">
+      <div class="togglePriv" onclick="toggleTheme()" role="switch" aria-checked="true" id="themeToggleRow" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); toggleTheme();}">
+        <span id="themeToggleLabel">Dark mode</span>
+        <div class="switch on" id="themeSwitch"></div>
+      </div>
+      <div class="togglePriv" onclick="togglePrivacy()" role="switch" aria-checked="false" id="privToggleRow" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); togglePrivacy();}">
+        <span>Privacy mode</span>
+        <div class="switch" id="privSwitch"></div>
+      </div>
+      <div class="dateNav">
+        <button onclick="shiftDate(-1)" aria-label="Previous day">‹</button>
+        <label for="boardDate" class="visually-hidden">Board date</label>
+        <input type="date" id="boardDate" onchange="renderAll()">
+        <button onclick="shiftDate(1)" aria-label="Next day">›</button>
+      </div>
+      <button class="btn btn-ghost" onclick="toggleAudit()">Audit log</button>
+      <button class="btn btn-accent" onclick="openBookingModal()">+ New Transport</button>
+      <div class="userChip">
+        <span class="roleBadge" id="roleBadge"></span>
+        <b id="userNameChip"></b>
+        <a onclick="logout()">Sign out</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="disclaimer"><b>Reminder:</b> These vehicles are for scheduled treatment/procedure transport only. For medical emergencies, call the facility's emergency line directly — do not use this booking system.</div>
+
+  <div class="tabRow">
+    <button class="tabBtn active" data-tab="board" onclick="switchTab('board')">Dispatch Board</button>
+    <button class="tabBtn" data-tab="calendar" onclick="switchTab('calendar')">Calendar</button>
+    <button class="tabBtn" data-tab="approval" id="approvalTabBtn" onclick="switchTab('approval')" style="display:none;">Approval Queue <span class="pill" id="pendingPill">0</span></button>
+  </div>
+
+  <!-- BOARD TAB -->
+  <div class="tabPane active" id="tab-board">
+    <div class="ruleInfo"><b>Scheduling rule:</b> each ambulance handles one patient at a time. The system enforces a strict, non-negotiable <b>3-hour gap</b> after every transport before that same vehicle can be booked again — well above the 2-hour minimum — for both Scheduler and Super Admin accounts. No booking that violates this can be saved or approved.</div>
+    <div class="legend">
+      <span><span class="swatch" style="background:var(--amber)"></span>Pending approval</span>
+      <span><span class="swatch" style="background:var(--teal)"></span>Approved</span>
+      <span><span class="swatch" style="background:#3a4a63"></span>Completed</span>
+      <span><span class="swatch" style="background:var(--red)"></span>Rejected / Cancelled</span>
+      <span><span class="swatch" style="background:repeating-linear-gradient(45deg,#3a4a63,#3a4a63 2px,#28405f 2px,#28405f 4px)"></span>3-hr buffer</span>
+    </div>
+
+    <div class="board">
+      <div class="boardHead">
+        <h2 id="boardDateLabel">Dispatch Board</h2>
+        <span class="cnt" id="boardCount"></span>
+      </div>
+      <div id="lanesContainer"></div>
+    </div>
+
+    <div class="panel" id="auditDrawer">
+      <div class="panelHead"><h2>Audit Log</h2><span class="cnt">Most recent 40 actions</span></div>
+      <div id="auditList"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panelHead">
+        <h2>Bookings — <span id="listDateLabel"></span></h2>
+        <span class="cnt" id="listCount"></span>
+      </div>
+      <div class="filterBar">
+        <label for="listSearch" class="visually-hidden">Search bookings</label>
+        <input type="search" id="listSearch" placeholder="Search patient, destination, caller…" oninput="renderList()">
+        <label for="listStatusFilter" class="visually-hidden">Filter by status</label>
+        <select id="listStatusFilter" onchange="renderList()">
+          <option value="">All statuses</option>
+          <option>Pending</option><option>Approved</option><option>Completed</option><option>Rejected</option><option>Cancelled</option>
+        </select>
+        <button class="clearFilters" onclick="clearListFilters()">Clear filters</button>
+      </div>
+      <div id="listContainer"></div>
+    </div>
+  </div>
+
+  <!-- CALENDAR TAB (both Scheduler and Super Admin) -->
+  <div class="tabPane" id="tab-calendar">
+    <div class="panel">
+      <div class="panelHead">
+        <h2 id="calMonthLabel">Availability calendar</h2>
+        <div class="dateNav calMonthNav">
+          <button onclick="shiftMonth(-1)" aria-label="Previous month">‹</button>
+          <span class="mono" id="calMonthYear"></span>
+          <button onclick="shiftMonth(1)" aria-label="Next month">›</button>
+          <button class="btn btn-ghost btn-sm" onclick="jumpToCurrentMonth()">Today</button>
+        </div>
+      </div>
+      <div class="legend">
+        <span><span class="swatch" style="background:var(--teal)"></span>Open — plenty of slots</span>
+        <span><span class="swatch" style="background:var(--amber)"></span>Limited — booked, slots remain</span>
+        <span><span class="swatch" style="background:var(--red)"></span>Fully booked — no slots left</span>
+        <span><span class="swatch" style="background:var(--violet)"></span>Today</span>
+      </div>
+      <div id="calGrid" class="calGrid" role="grid" aria-label="Monthly ambulance availability"></div>
+      <div class="calLegendNote">Click any date to jump straight to that day's Dispatch Board — no need to hunt through days manually.</div>
+    </div>
+  </div>
+
+  <!-- APPROVAL QUEUE TAB (SuperAdmin only) -->
+  <div class="tabPane" id="tab-approval">
+    <div class="panel">
+      <div class="panelHead">
+        <h2>Approval Queue</h2>
+        <span class="cnt">Sorted by scheduled time · earliest first</span>
+      </div>
+      <div id="queueContainer"></div>
+    </div>
+  </div>
+</div>
+
+<!-- BOOKING MODAL -->
+<div class="overlay" id="bookingOverlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="modal">
+    <h2 id="modalTitle">Schedule Transport</h2>
+    <p class="sub" id="modalSub">Fields marked <span class="reqStar">*</span> are required. New requests are submitted as <b>Pending</b> and require Super Admin approval.</p>
+    <div id="formNotice"></div>
+
+    <input type="hidden" id="editId">
+
+    <div class="sectionLabel">Patient</div>
+    <div class="grid2">
+      <div class="field"><label for="f_patientName">Full name<span class="reqStar">*</span></label><input id="f_patientName" type="text"><div class="fieldErr" id="err_patientName">Patient name is required.</div></div>
+      <div class="field"><label for="f_sex">Sex<span class="reqStar">*</span></label>
+        <select id="f_sex"><option value="">Select</option><option>Male</option><option>Female</option><option>Other</option></select>
+        <div class="fieldErr" id="err_sex">Please select a sex.</div>
+      </div>
+      <div class="field"><label for="f_age">Age<span class="reqStar">*</span></label><input id="f_age" type="number" min="0" max="120"><div class="fieldErr" id="err_age">Enter a valid age.</div></div>
+      <div class="field"><label for="f_destination">Destination<span class="reqStar">*</span></label><input id="f_destination" type="text" placeholder="e.g. City General Hospital – Dialysis Unit"><div class="fieldErr" id="err_destination">Destination is required.</div></div>
+    </div>
+    <div class="field"><label for="f_procedure">Procedure / treatment needed<span class="reqStar">*</span></label><input id="f_procedure" type="text" placeholder="e.g. Hemodialysis, Chemotherapy, Referral"><div class="fieldErr" id="err_procedure">Procedure is required.</div></div>
+    <div class="field"><label for="f_notes">Notes (optional)</label><textarea id="f_notes" rows="2" placeholder="Mobility assistance, return trip needed, etc."></textarea></div>
+
+    <div class="sectionLabel">Schedule</div>
+    <div class="grid2">
+      <div class="field"><label for="f_date">Date<span class="reqStar">*</span></label><input id="f_date" type="date"></div>
+      <div class="field"><label for="f_time">Time<span class="reqStar">*</span></label><input id="f_time" type="time"></div>
+      <div class="field"><label for="f_duration">Estimated duration (minutes)<span class="reqStar">*</span></label><input id="f_duration" type="number" min="15" step="5" value="60"></div>
+      <div class="field"><label for="f_return">Return trip needed?</label>
+        <select id="f_return"><option value="No">No</option><option value="Yes">Yes</option></select>
+      </div>
+    </div>
+    <div id="ambSuggest"></div>
+    <div class="ruleInfo" style="margin-bottom:10px;">Each vehicle can only carry one patient at a time. A strict <b>3-hour gap</b> is required before the same ambulance can be booked again — this applies to every request, for every user.</div>
+    <div class="field"><label id="ambPickLabel">Assigned ambulance<span class="reqStar">*</span></label>
+      <div class="ambPick" id="ambPick" role="radiogroup" aria-labelledby="ambPickLabel"></div>
+      <div class="fieldErr" id="err_amb">Choose an available ambulance.</div>
+    </div>
+
+    <div class="sectionLabel">Caller / Endorser</div>
+    <div class="grid2">
+      <div class="field"><label for="f_callerName">Caller / endorser name<span class="reqStar">*</span></label><input id="f_callerName" type="text"><div class="fieldErr" id="err_callerName">Caller name is required.</div></div>
+      <div class="field"><label for="f_callerPhone">Telephone / local ext #<span class="reqStar">*</span></label><input id="f_callerPhone" type="text"><div class="fieldErr" id="err_callerPhone">Phone / extension is required.</div></div>
+    </div>
+    <div class="field"><label for="f_ward">Ward of caller / endorser<span class="reqStar">*</span></label>
+      <select id="f_ward">
+        <option value="">Select ward</option>
+        <option>Ward 1 – Medicine</option>
+        <option>Ward 2 – Surgery</option>
+        <option>Ward 3 – Pediatrics</option>
+        <option>Ward 4 – OB-Gyne</option>
+        <option>Dialysis Unit</option>
+        <option>Oncology / Chemo Unit</option>
+        <option>OPD</option>
+        <option>ER</option>
+        <option>Other</option>
+      </select>
+      <div class="fieldErr" id="err_ward">Please select a ward.</div>
+    </div>
+
+    <div class="sectionLabel" id="statusSectionLabel" style="display:none;">Status (Super Admin only)</div>
+    <div class="field" id="statusFieldWrap" style="display:none;"><label for="f_status">Booking status</label>
+      <select id="f_status"><option>Pending</option><option>Approved</option><option>Rejected</option><option>Completed</option><option>Cancelled</option></select>
+    </div>
+    <div class="field" id="cancelReasonWrap" style="display:none;"><label for="f_cancelReason">Reason (rejection / cancellation)</label><input id="f_cancelReason" type="text"></div>
+
+    <div class="modalActions">
+      <button class="btn btn-ghost" onclick="closeBookingModal()">Cancel</button>
+      <button class="btn btn-primary" style="width:auto;" onclick="saveBooking()">Save booking</button>
+    </div>
+  </div>
+</div>
+
+<!-- FULL DETAILS MODAL (read-only) -->
+<div class="overlay" id="detailOverlay" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
+  <div class="modal">
+    <h2 id="detailTitle">Transport Request Details</h2>
+    <p class="sub" id="detailRef"></p>
+    <div id="detailBody"></div>
+    <div class="modalActions">
+      <button class="btn btn-ghost" onclick="closeDetailModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============ CONFIG ============ */
+const AMBULANCES = [
+  {id:'AMB-1', label:'Ambulance 1', color:'var(--teal)'}
+];
+const GAP_MS = 3*60*60*1000; // mandatory 3-hour gap per ambulance (stricter than the 2-hour minimum)
+const STORAGE_KEY = 'ambulance_bookings_v2';
+const AUDIT_KEY = 'ambulance_audit_v2';
+const THEME_KEY = 'ambulance_theme_pref_v1';
+
+// Demo user directory — in production, replace with a real identity provider,
+// hashed credentials, MFA, and server-issued session tokens.
+const USERS = [
+  {username:'admin',      password:'dispatch123', role:'Scheduler',  label:'Scheduler'},
+  {username:'superadmin', password:'Super#2026',  role:'SuperAdmin', label:'Super Admin'}
+];
+
+var bookings = [];
+var auditLog = [];
+var privacyMode = false;
+var currentSuggestedAmb = null;
+var currentUser = null;
+var activeTab = 'board';
+var currentTheme = 'dark';
+var calendarMonth = new Date(); calendarMonth.setDate(1);
+
+/* ============ THEME (light / dark) ============ */
+async function loadTheme(){
+  let theme = 'dark';
+  try{ const t = await window.storage.get(THEME_KEY, false); if(t && t.value) theme = t.value; }
+  catch(e){ /* no saved preference yet — default to dark */ }
+  applyTheme(theme, false);
+}
+function applyTheme(theme, persist=true){
+  currentTheme = theme;
+  document.documentElement.setAttribute('data-theme', theme);
+  const sw = document.getElementById('themeSwitch');
+  const row = document.getElementById('themeToggleRow');
+  const label = document.getElementById('themeToggleLabel');
+  if(sw) sw.classList.toggle('on', theme==='dark');
+  if(row) row.setAttribute('aria-checked', theme==='dark' ? 'true':'false');
+  if(label) label.textContent = theme==='dark' ? 'Dark mode' : 'Light mode';
+  if(persist){ try{ window.storage.set(THEME_KEY, theme, false); }catch(e){ /* ignore */ } }
+}
+function toggleTheme(){ applyTheme(currentTheme==='dark' ? 'light' : 'dark'); }
+loadTheme();
+
+/* ============ STORAGE ============ */
+async function loadData(){
+  try{ const b = await window.storage.get(STORAGE_KEY, true); bookings = b ? JSON.parse(b.value) : []; }
+  catch(e){ bookings = []; }
+  try{ const a = await window.storage.get(AUDIT_KEY, true); auditLog = a ? JSON.parse(a.value) : []; }
+  catch(e){ auditLog = []; }
+}
+async function persistBookings(){
+  try{ await window.storage.set(STORAGE_KEY, JSON.stringify(bookings), true); }
+  catch(e){ console.error('Failed to save bookings', e); }
+}
+async function persistAudit(){
+  try{ await window.storage.set(AUDIT_KEY, JSON.stringify(auditLog), true); }
+  catch(e){ console.error('Failed to save audit log', e); }
+}
+function logAction(action, bookingId, details){
+  auditLog.unshift({
+    id:'A'+Date.now()+Math.random().toString(16).slice(2,6),
+    bookingId, action, details,
+    by: currentUser ? currentUser.username : 'system',
+    role: currentUser ? currentUser.role : '',
+    ts:new Date().toISOString()
+  });
+  auditLog = auditLog.slice(0,300);
+  persistAudit();
+}
+
+/* ============ UI HELPERS: toasts, confirm dialog, overlay a11y ============ */
+function toast(message, type='ok', title){
+  const region = document.getElementById('toastRegion');
+  const el = document.createElement('div');
+  el.className = 'toast' + (type==='error' ? ' error' : type==='warn' ? ' warn' : '');
+  el.setAttribute('role','status');
+  el.innerHTML = (title ? `<b>${title}</b>` : '') + message;
+  region.appendChild(el);
+  setTimeout(()=>{ el.style.opacity='0'; el.style.transition='opacity .25s'; setTimeout(()=>el.remove(),250); }, 4200);
+}
+
+let lastFocusedEl = null;
+function trapFocus(overlayEl){
+  lastFocusedEl = document.activeElement;
+  const focusables = overlayEl.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+  if(focusables.length) focusables[0].focus();
+}
+function releaseFocus(){
+  if(lastFocusedEl && lastFocusedEl.focus) lastFocusedEl.focus();
+  lastFocusedEl = null;
+}
+function openOverlay(id){
+  const el = document.getElementById(id);
+  el.classList.add('show');
+  trapFocus(el);
+}
+function closeOverlayEl(id){
+  document.getElementById(id).classList.remove('show');
+  releaseFocus();
+}
+// Backdrop click + Escape closes the top-most visible overlay
+document.addEventListener('click', (e)=>{
+  if(e.target.classList && e.target.classList.contains('overlay') && e.target.classList.contains('show')){
+    if(e.target.id==='confirmOverlay') closeConfirm(false);
+    else if(e.target.id==='bookingOverlay') closeBookingModal();
+    else if(e.target.id==='detailOverlay') closeDetailModal();
+  }
+});
+document.addEventListener('keydown', (e)=>{
+  if(e.key!=='Escape') return;
+  if(document.getElementById('confirmOverlay').classList.contains('show')) closeConfirm(false);
+  else if(document.getElementById('bookingOverlay').classList.contains('show')) closeBookingModal();
+  else if(document.getElementById('detailOverlay').classList.contains('show')) closeDetailModal();
+});
+
+// Confirm/reason dialog — replaces native confirm()/prompt()
+let confirmResolver = null;
+function askConfirm({title, message, requireReason=false, confirmLabel='Confirm', danger=false}){
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmMessage').textContent = message;
+  const reasonWrap = document.getElementById('confirmReasonWrap');
+  const reasonInput = document.getElementById('confirmReasonInput');
+  reasonInput.value='';
+  document.getElementById('confirmReasonErr').classList.remove('show');
+  reasonWrap.style.display = requireReason ? 'block' : 'none';
+  const okBtn = document.getElementById('confirmOkBtn');
+  okBtn.textContent = confirmLabel;
+  okBtn.className = 'btn ' + (danger ? 'btn-reject' : 'btn-primary') + ' ';
+  okBtn.style.width = 'auto';
+  openOverlay('confirmOverlay');
+  return new Promise(resolve=>{ confirmResolver = resolve; });
+}
+function handleConfirmOk(){
+  const requireReason = document.getElementById('confirmReasonWrap').style.display==='block';
+  const reasonInput = document.getElementById('confirmReasonInput');
+  if(requireReason && !reasonInput.value.trim()){
+    document.getElementById('confirmReasonErr').classList.add('show');
+    reasonInput.focus();
+    return;
+  }
+  closeConfirm(true, reasonInput.value.trim());
+}
+function closeConfirm(confirmed, reason){
+  closeOverlayEl('confirmOverlay');
+  if(confirmResolver){ confirmResolver(confirmed ? {confirmed:true, reason:reason||''} : {confirmed:false}); confirmResolver=null; }
+}
+
+function togglePwVisibility(){
+  const input = document.getElementById('loginPass');
+  const btn = document.getElementById('pwToggleBtn');
+  const show = input.type==='password';
+  input.type = show ? 'text' : 'password';
+  btn.textContent = show ? 'Hide' : 'Show';
+  btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+}
+
+/* ============ LOGIN ============ */
+function attemptLogin(){
+  const u = document.getElementById('loginUser').value.trim();
+  const p = document.getElementById('loginPass').value;
+  const err = document.getElementById('loginError');
+  const match = USERS.find(x=>x.username===u && x.password===p);
+  if(match){
+    currentUser = {username: match.username, role: match.role, label: match.label};
+    document.getElementById('loginGate').style.display='none';
+    document.getElementById('app').style.display='block';
+    document.getElementById('roleBadge').textContent = match.label;
+    document.getElementById('userNameChip').textContent = match.username;
+    document.getElementById('approvalTabBtn').style.display = match.role==='SuperAdmin' ? 'inline-block' : 'none';
+    if(match.role!=='SuperAdmin') switchTab('board');
+    init();
+  } else {
+    err.style.display='block';
+    err.textContent = 'Invalid credentials.';
+  }
+}
+function logout(){
+  currentUser = null;
+  document.getElementById('app').style.display='none';
+  document.getElementById('loginGate').style.display='flex';
+  document.getElementById('loginPass').value='';
+}
+function isSuperAdmin(){ return currentUser && currentUser.role==='SuperAdmin'; }
+function requireSuperAdmin(){
+  if(!isSuperAdmin()){ toast('This action requires Super Admin privileges.', 'error', 'Not authorized'); return false; }
+  return true;
+}
+
+/* ============ TABS ============ */
+function switchTab(tab){
+  activeTab = tab;
+  document.querySelectorAll('.tabBtn').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
+  document.getElementById('tab-board').classList.toggle('active', tab==='board');
+  document.getElementById('tab-calendar').classList.toggle('active', tab==='calendar');
+  document.getElementById('tab-approval').classList.toggle('active', tab==='approval');
+  if(tab==='approval') renderApprovalQueue();
+  if(tab==='calendar') renderCalendar();
+}
+
+/* ============ INIT ============ */
+async function init(){
+  const lanes = document.getElementById('lanesContainer');
+  lanes.innerHTML = '<div class="loadingRow"><span class="spinner" aria-hidden="true"></span>Loading today\'s schedule…</div>';
+  await loadData();
+  const today = new Date().toISOString().slice(0,10);
+  document.getElementById('boardDate').value = today;
+  renderAll();
+}
+function todayStr(){ return document.getElementById('boardDate').value || new Date().toISOString().slice(0,10); }
+function shiftDate(delta){
+  const d = new Date(document.getElementById('boardDate').value);
+  d.setDate(d.getDate()+delta);
+  document.getElementById('boardDate').value = d.toISOString().slice(0,10);
+  renderAll();
+}
+function togglePrivacy(){
+  privacyMode = !privacyMode;
+  document.getElementById('privSwitch').classList.toggle('on', privacyMode);
+  document.getElementById('privToggleRow').setAttribute('aria-checked', privacyMode ? 'true' : 'false');
+  renderAll();
+  toast(privacyMode ? 'Patient names are now masked on screen.' : 'Full patient names are now visible.', 'ok', 'Privacy mode ' + (privacyMode?'on':'off'));
+}
+function toggleAudit(){
+  const el = document.getElementById('auditDrawer');
+  el.style.display = el.style.display==='none' ? 'block' : 'none';
+  renderAudit();
+}
+function maskName(name){
+  if(!privacyMode) return name;
+  const parts = name.trim().split(/\s+/);
+  return parts.map(p=>p[0]?p[0].toUpperCase()+'.':'').join(' ');
+}
+
+/* ============ AVAILABILITY LOGIC ============ */
+function activeBookingsFor(ambId, excludeId){
+  return bookings.filter(b => b.ambulance===ambId && b.status!=='Cancelled' && b.status!=='Rejected' && b.id!==excludeId);
+}
+function conflicts(startMs, endMs, existingStartMs, existingEndMs){
+  return startMs < (existingEndMs + GAP_MS) && existingStartMs < (endMs + GAP_MS);
+}
+function isAmbulanceAvailable(ambId, startMs, endMs, excludeId){
+  const list = activeBookingsFor(ambId, excludeId);
+  for(const b of list){
+    const bs = new Date(b.scheduledStart).getTime();
+    const be = new Date(b.scheduledEnd).getTime();
+    if(conflicts(startMs, endMs, bs, be)) return false;
+  }
+  return true;
+}
+function nextAvailableSlot(ambId, desiredStartMs, durationMs, excludeId){
+  let start = desiredStartMs;
+  const stepMs = 15*60*1000;
+  for(let i=0;i<192;i++){
+    if(isAmbulanceAvailable(ambId, start, start+durationMs, excludeId)) return start;
+    start += stepMs;
+  }
+  return null;
+}
+
+/* ============ BOOKING MODAL (create / edit) ============ */
+function openBookingModal(prefillBooking){
+  document.getElementById('formNotice').innerHTML='';
+  document.getElementById('cancelReasonWrap').style.display='none';
+  currentSuggestedAmb = null;
+
+  const canEditStatus = isSuperAdmin();
+  document.getElementById('statusSectionLabel').style.display = canEditStatus ? 'block' : 'none';
+  document.getElementById('statusFieldWrap').style.display = canEditStatus ? 'block' : 'none';
+
+  if(prefillBooking){
+    document.getElementById('modalTitle').textContent = 'Edit Transport';
+    document.getElementById('modalSub').innerHTML = `Reference <b class="mono">${prefillBooking.id}</b>. ${canEditStatus ? 'As Super Admin you may change status directly.' : 'Status changes require Super Admin approval.'}`;
+    document.getElementById('editId').value = prefillBooking.id;
+    document.getElementById('f_patientName').value = prefillBooking.patientName;
+    document.getElementById('f_sex').value = prefillBooking.sex;
+    document.getElementById('f_age').value = prefillBooking.age;
+    document.getElementById('f_destination').value = prefillBooking.destination;
+    document.getElementById('f_procedure').value = prefillBooking.procedure;
+    document.getElementById('f_notes').value = prefillBooking.notes||'';
+    const dt = new Date(prefillBooking.scheduledStart);
+    document.getElementById('f_date').value = dt.toISOString().slice(0,10);
+    document.getElementById('f_time').value = dt.toTimeString().slice(0,5);
+    document.getElementById('f_duration').value = prefillBooking.durationMin;
+    document.getElementById('f_return').value = prefillBooking.returnTrip||'No';
+    document.getElementById('f_callerName').value = prefillBooking.callerName;
+    document.getElementById('f_callerPhone').value = prefillBooking.callerPhone;
+    document.getElementById('f_ward').value = prefillBooking.callerWard;
+    document.getElementById('f_status').value = prefillBooking.status;
+    currentSuggestedAmb = prefillBooking.ambulance;
+    if(prefillBooking.status==='Cancelled' || prefillBooking.status==='Rejected'){
+      document.getElementById('cancelReasonWrap').style.display='block';
+      document.getElementById('f_cancelReason').value = prefillBooking.cancelReason||'';
+    }
+  } else {
+    document.getElementById('modalTitle').textContent = 'Schedule Transport';
+    document.getElementById('modalSub').innerHTML = 'All fields required unless marked optional. New requests are submitted as <b>Pending</b> and require Super Admin approval.';
+    document.getElementById('editId').value='';
+    ['f_patientName','f_age','f_destination','f_procedure','f_notes','f_callerName','f_callerPhone'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('f_sex').value='';
+    document.getElementById('f_ward').value='';
+    document.getElementById('f_date').value = todayStr();
+    document.getElementById('f_time').value = '09:00';
+    document.getElementById('f_duration').value = 60;
+    document.getElementById('f_return').value='No';
+    document.getElementById('f_status').value='Pending';
+  }
+  document.getElementById('f_status').onchange = ()=>{
+    const v = document.getElementById('f_status').value;
+    document.getElementById('cancelReasonWrap').style.display = (v==='Cancelled'||v==='Rejected') ? 'block':'none';
+  };
+  ['f_date','f_time','f_duration'].forEach(id=>{ document.getElementById(id).oninput = refreshAvailability; });
+  refreshAvailability();
+  clearFieldErrors();
+  openOverlay('bookingOverlay');
+}
+function closeBookingModal(){ closeOverlayEl('bookingOverlay'); }
+
+function clearFieldErrors(){
+  document.querySelectorAll('#bookingOverlay .invalid').forEach(el=>el.classList.remove('invalid'));
+  document.querySelectorAll('#bookingOverlay .fieldErr').forEach(el=>el.classList.remove('show'));
+}
+function markInvalid(fieldId, errId){
+  const f = document.getElementById(fieldId);
+  if(f) f.classList.add('invalid');
+  const e = document.getElementById(errId);
+  if(e) e.classList.add('show');
+}
+
+function getFormTimes(){
+  const date = document.getElementById('f_date').value;
+  const time = document.getElementById('f_time').value;
+  const dur = parseInt(document.getElementById('f_duration').value||'60',10);
+  if(!date||!time) return null;
+  const start = new Date(date+'T'+time+':00');
+  const durationMs = dur*60*1000;
+  return {startMs:start.getTime(), endMs:start.getTime()+durationMs, durationMs, dur};
+}
+
+function refreshAvailability(){
+  const t = getFormTimes();
+  const editId = document.getElementById('editId').value || null;
+  const box = document.getElementById('ambSuggest');
+  const pick = document.getElementById('ambPick');
+  pick.innerHTML='';
+  if(!t){ box.innerHTML=''; return; }
+
+  const availability = AMBULANCES.map(a => ({...a, available: isAmbulanceAvailable(a.id, t.startMs, t.endMs, editId)}));
+  const anyAvailable = availability.some(a=>a.available);
+  if(!anyAvailable){
+    const suggestions = AMBULANCES.map(a=>{
+      const slot = nextAvailableSlot(a.id, t.startMs, t.endMs-t.startMs, editId);
+      return {amb:a.label, slot: slot ? new Date(slot) : null};
+    }).filter(s=>s.slot);
+    let html = '<div class="notice warn">The ambulance is unavailable at this time (3-hour gap rule).</div>';
+    if(suggestions.length){
+      html += '<div class="suggestBox">Next available slots:<br>' +
+        suggestions.map(s=>`${s.amb}: <b class="mono">${s.slot.toLocaleString()}</b>`).join('<br>') + '</div>';
+    }
+    box.innerHTML = html;
+  } else { box.innerHTML = ''; }
+
+  availability.forEach(a=>{
+    const div = document.createElement('div');
+    div.className = 'ambOpt ' + (a.available?'avail':'busy') + (currentSuggestedAmb===a.id?' selected':'');
+    div.textContent = a.label + (a.available ? ' — available' : ' — conflict');
+    div.setAttribute('role','radio');
+    div.setAttribute('aria-checked', currentSuggestedAmb===a.id ? 'true' : 'false');
+    div.setAttribute('aria-disabled', a.available ? 'false' : 'true');
+    if(a.available){
+      div.tabIndex = 0;
+      div.onclick = ()=>{ currentSuggestedAmb = a.id; document.getElementById('err_amb').classList.remove('show'); refreshAvailability(); };
+      div.onkeydown = (e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); div.click(); } };
+    }
+    pick.appendChild(div);
+  });
+  if(!currentSuggestedAmb){
+    const firstAvail = availability.find(a=>a.available);
+    if(firstAvail){ currentSuggestedAmb = firstAvail.id; refreshAvailability(); }
+  }
+}
+
+function saveBooking(){
+  const notice = document.getElementById('formNotice');
+  notice.innerHTML='';
+  const name = document.getElementById('f_patientName').value.trim();
+  const sex = document.getElementById('f_sex').value;
+  const age = document.getElementById('f_age').value;
+  const destination = document.getElementById('f_destination').value.trim();
+  const procedure = document.getElementById('f_procedure').value.trim();
+  const callerName = document.getElementById('f_callerName').value.trim();
+  const callerPhone = document.getElementById('f_callerPhone').value.trim();
+  const callerWard = document.getElementById('f_ward').value;
+  const t = getFormTimes();
+  const editId = document.getElementById('editId').value || null;
+
+  clearFieldErrors();
+  let firstInvalid = null;
+  const check = (val, fieldId, errId)=>{
+    if(!val){ markInvalid(fieldId, errId); if(!firstInvalid) firstInvalid = fieldId; }
+  };
+  check(name, 'f_patientName', 'err_patientName');
+  check(sex, 'f_sex', 'err_sex');
+  check(age, 'f_age', 'err_age');
+  check(destination, 'f_destination', 'err_destination');
+  check(procedure, 'f_procedure', 'err_procedure');
+  check(callerName, 'f_callerName', 'err_callerName');
+  check(callerPhone, 'f_callerPhone', 'err_callerPhone');
+  check(callerWard, 'f_ward', 'err_ward');
+  if(!t){ notice.innerHTML = '<div class="notice error">Please provide a valid date and time.</div>'; }
+
+  if(firstInvalid || !t){
+    notice.innerHTML = notice.innerHTML || '<div class="notice error">Please fix the highlighted fields below.</div>';
+    if(firstInvalid) document.getElementById(firstInvalid).focus();
+    return;
+  }
+  if(!currentSuggestedAmb){
+    notice.innerHTML = '<div class="notice error">No ambulance selected. Choose an available vehicle, or a suggested time slot.</div>';
+    document.getElementById('err_amb').classList.add('show');
+    return;
+  }
+
+  const canEditStatus = isSuperAdmin();
+  let status = 'Pending';
+  if(editId){
+    const existing = bookings.find(b=>b.id===editId);
+    status = canEditStatus ? document.getElementById('f_status').value : existing.status;
+  }
+
+  if((status==='Approved'||status==='Pending'||status==='Completed') && !isAmbulanceAvailable(currentSuggestedAmb, t.startMs, t.endMs, editId)){
+    notice.innerHTML = '<div class="notice error">Selected ambulance is no longer available for this slot (3-hour gap rule). Choose another time or vehicle.</div>';
+    refreshAvailability();
+    return;
+  }
+
+  const record = {
+    id: editId || ('BK-'+Date.now().toString(36).toUpperCase()),
+    patientName:name, sex, age:parseInt(age,10), destination, procedure,
+    notes: document.getElementById('f_notes').value.trim(),
+    scheduledStart: new Date(t.startMs).toISOString(),
+    scheduledEnd: new Date(t.endMs).toISOString(),
+    durationMin: t.dur,
+    returnTrip: document.getElementById('f_return').value,
+    ambulance: currentSuggestedAmb,
+    callerName, callerPhone, callerWard,
+    status,
+    cancelReason: (status==='Cancelled'||status==='Rejected') ? document.getElementById('f_cancelReason').value.trim() : '',
+    requestedBy: editId ? (bookings.find(b=>b.id===editId)?.requestedBy || currentUser.username) : currentUser.username,
+    createdAt: editId ? (bookings.find(b=>b.id===editId)?.createdAt || new Date().toISOString()) : new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    decidedBy: editId ? (bookings.find(b=>b.id===editId)?.decidedBy || '') : '',
+    decidedAt: editId ? (bookings.find(b=>b.id===editId)?.decidedAt || '') : ''
+  };
+  if(canEditStatus && (status==='Approved'||status==='Rejected') && (!editId || bookings.find(b=>b.id===editId)?.status!==status)){
+    record.decidedBy = currentUser.username;
+    record.decidedAt = new Date().toISOString();
+  }
+
+  if(editId){
+    const idx = bookings.findIndex(b=>b.id===editId);
+    const old = bookings[idx];
+    bookings[idx] = record;
+    logAction('EDIT', record.id, `Updated request for ${record.patientName} (${old.status} → ${record.status})`);
+    toast(`Changes to ${record.patientName}'s transport were saved.`, 'ok', 'Booking updated');
+  } else {
+    bookings.push(record);
+    logAction('CREATE', record.id, `New transport request submitted for ${record.patientName} — pending Super Admin approval`);
+    toast(`Request for ${record.patientName} is now Pending Super Admin approval.`, 'ok', 'Transport requested');
+  }
+  persistBookings();
+  closeBookingModal();
+  renderAll();
+}
+
+async function cancelBooking(id){
+  const b = bookings.find(x=>x.id===id);
+  if(!b) return;
+  const {confirmed, reason} = await askConfirm({
+    title:'Cancel this transport?',
+    message:`This will cancel the transport for ${b.patientName} (${b.procedure}). This can't be undone.`,
+    requireReason:true, confirmLabel:'Cancel transport', danger:true
+  });
+  if(!confirmed) return;
+  b.status='Cancelled';
+  b.cancelReason = reason;
+  b.updatedAt = new Date().toISOString();
+  logAction('CANCEL', id, `Cancelled by ${currentUser.username} — reason: ${reason||'(none given)'}`);
+  persistBookings();
+  renderAll();
+  toast(`${b.patientName}'s transport was cancelled.`, 'warn', 'Cancelled');
+}
+function editBooking(id){ const b = bookings.find(x=>x.id===id); if(b) openBookingModal(b); }
+
+/* ============ SUPER ADMIN: APPROVE / REJECT ============ */
+async function approveBooking(id){
+  if(!requireSuperAdmin()) return;
+  const b = bookings.find(x=>x.id===id);
+  if(!b) return;
+  const start = new Date(b.scheduledStart).getTime();
+  const end = new Date(b.scheduledEnd).getTime();
+  if(!isAmbulanceAvailable(b.ambulance, start, end, b.id)){
+    toast(`This slot now conflicts with another active booking on ${b.ambulance} (3-hour gap rule). Reassign the ambulance or time before approving.`, 'error', 'Cannot approve');
+    return;
+  }
+  const {confirmed} = await askConfirm({
+    title:'Approve this transport?',
+    message:`Approve ${b.patientName}'s transport (${b.procedure}) on ${b.ambulance}?`,
+    confirmLabel:'Approve'
+  });
+  if(!confirmed) return;
+  b.status='Approved';
+  b.decidedBy = currentUser.username;
+  b.decidedAt = new Date().toISOString();
+  b.updatedAt = new Date().toISOString();
+  logAction('APPROVE', id, `Approved by ${currentUser.username} — ${b.patientName} on ${b.ambulance}`);
+  persistBookings();
+  renderAll();
+  toast(`${b.patientName}'s transport is confirmed on ${b.ambulance}.`, 'ok', 'Approved');
+}
+async function rejectBooking(id){
+  if(!requireSuperAdmin()) return;
+  const b = bookings.find(x=>x.id===id);
+  if(!b) return;
+  const {confirmed, reason} = await askConfirm({
+    title:'Reject this request?',
+    message:`Reject the transport request for ${b.patientName} (${b.procedure})? A reason is required so the requester knows why.`,
+    requireReason:true, confirmLabel:'Reject request', danger:true
+  });
+  if(!confirmed) return;
+  b.status='Rejected';
+  b.cancelReason = reason;
+  b.decidedBy = currentUser.username;
+  b.decidedAt = new Date().toISOString();
+  b.updatedAt = new Date().toISOString();
+  logAction('REJECT', id, `Rejected by ${currentUser.username} — reason: ${reason}`);
+  persistBookings();
+  renderAll();
+  toast(`${b.patientName}'s request was rejected.`, 'warn', 'Rejected');
+}
+
+/* ============ FULL DETAILS MODAL (read-only) ============ */
+function openDetailModal(id){
+  const b = bookings.find(x=>x.id===id);
+  if(!b) return;
+  document.getElementById('detailRef').innerHTML = `Reference <b class="mono">${b.id}</b> · Submitted by <b>${b.requestedBy||'—'}</b>`;
+  const ambLabel = AMBULANCES.find(a=>a.id===b.ambulance)?.label || b.ambulance;
+  const s = new Date(b.scheduledStart), e = new Date(b.scheduledEnd);
+  const trail = auditLog.filter(a=>a.bookingId===b.id).slice().reverse();
+
+  const row = (k,v)=>`<div class="detailItem"><div class="k">${k}</div><div class="v">${v||'—'}</div></div>`;
+  let html = '<div class="detailGrid">';
+  html += row('Patient full name', b.patientName);
+  html += row('Sex / Age', `${b.sex}, ${b.age} yrs`);
+  html += row('Destination', b.destination);
+  html += row('Procedure needed', b.procedure);
+  html += row('Scheduled date & time', `${s.toLocaleString()} → ${e.toLocaleTimeString()}`);
+  html += row('Assigned ambulance', ambLabel);
+  html += row('Return trip needed', b.returnTrip);
+  html += row('Caller / endorser', b.callerName);
+  html += row('Telephone / local ext #', b.callerPhone);
+  html += row('Ward of caller / endorser', b.callerWard);
+  html += row('Current status', `<span class="badge ${b.status}">${b.status}</span>`);
+  html += row('Decided by', b.decidedBy ? `${b.decidedBy} (${new Date(b.decidedAt).toLocaleString()})` : 'Awaiting decision');
+  if(b.cancelReason) html += row('Reject / cancel reason', b.cancelReason);
+  html += `<div class="detailItem detailFull">${row('Notes', b.notes||'—')}</div>`;
+  html += '</div>';
+  html += `<div class="sectionLabel">Activity trail</div><div class="trailBox">` +
+    (trail.length ? trail.map(a=>`<div class="auditItem"><b>${a.action}</b> — ${a.details}<span class="ts">${new Date(a.ts).toLocaleString()}</span></div>`).join('') : '<div class="empty">No activity recorded.</div>') +
+    `</div>`;
+  document.getElementById('detailBody').innerHTML = html;
+  openOverlay('detailOverlay');
+}
+function closeDetailModal(){ closeOverlayEl('detailOverlay'); }
+
+/* ============ RENDER ============ */
+function renderAll(){
+  renderBoard();
+  renderList();
+  renderAudit();
+  updatePendingPill();
+  if(activeTab==='approval') renderApprovalQueue();
+  if(activeTab==='calendar') renderCalendar();
+}
+
+/* ============ CALENDAR (monthly availability lookup) ============ */
+// Simple, transparent algorithm: for every date, probe the ambulance in
+// 30-minute steps across the full day. If the ambulance has no open
+// window (respecting the mandatory 3-hour gap), the date is "Full".
+// If some bookings exist but a window is still open, it's "Limited".
+// If there are no bookings at all yet, it's "Open".
+function getDateAvailabilityStatus(dateStr){
+  const dayBookings = bookingsForDate(dateStr).filter(b=>b.status!=='Cancelled' && b.status!=='Rejected');
+  if(dayBookings.length===0) return {status:'open', count:0};
+  const dayStart = new Date(dateStr+'T00:00:00').getTime();
+  const dayEnd = dayStart + 24*60*60*1000;
+  const probeMs = 30*60*1000;
+  let anyOpen = false;
+  outer:
+  for(const amb of AMBULANCES){
+    for(let t=dayStart; t+probeMs<=dayEnd; t+=probeMs){
+      if(isAmbulanceAvailable(amb.id, t, t+probeMs, null)){ anyOpen = true; break outer; }
+    }
+  }
+  return {status: anyOpen ? 'limited' : 'full', count: dayBookings.length};
+}
+function shiftMonth(delta){
+  calendarMonth.setMonth(calendarMonth.getMonth()+delta);
+  renderCalendar();
+}
+function jumpToCurrentMonth(){
+  calendarMonth = new Date(); calendarMonth.setDate(1);
+  renderCalendar();
+}
+function jumpToDate(dateStr){
+  document.getElementById('boardDate').value = dateStr;
+  switchTab('board');
+  renderAll();
+}
+function renderCalendar(){
+  const year = calendarMonth.getFullYear(), month = calendarMonth.getMonth();
+  document.getElementById('calMonthYear').textContent = calendarMonth.toLocaleDateString(undefined,{month:'long', year:'numeric'});
+  const grid = document.getElementById('calGrid');
+  grid.innerHTML='';
+  ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(d=>{
+    const el = document.createElement('div'); el.className='calWeekday'; el.textContent=d; grid.appendChild(el);
+  });
+  const firstDay = new Date(year, month, 1);
+  const startOffset = firstDay.getDay();
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const todayIso = todayStr ? new Date().toISOString().slice(0,10) : '';
+  for(let i=0;i<startOffset;i++){
+    const el = document.createElement('div'); el.className='calDay empty'; grid.appendChild(el);
+  }
+  const statusLabel = {open:'Open', limited:'Limited', full:'Full'};
+  for(let day=1; day<=daysInMonth; day++){
+    const dateObj = new Date(year, month, day);
+    const dateStr = dateObj.toISOString().slice(0,10);
+    const stat = getDateAvailabilityStatus(dateStr);
+    const el = document.createElement('div');
+    el.className = 'calDay' + (dateStr===todayIso ? ' today' : '');
+    el.tabIndex = 0;
+    el.setAttribute('role','button');
+    el.setAttribute('aria-label', `${dateObj.toLocaleDateString(undefined,{weekday:'long', month:'long', day:'numeric'})}, ${statusLabel[stat.status]}, ${stat.count} booking(s). Activate to view this day's dispatch board.`);
+    el.innerHTML = `<div class="num">${day}</div><div class="cnt">${stat.count ? stat.count+' booking'+(stat.count>1?'s':'') : 'No bookings'}</div><div class="stat ${stat.status}">${statusLabel[stat.status]}</div>`;
+    el.onclick = ()=>jumpToDate(dateStr);
+    el.onkeydown = (e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); jumpToDate(dateStr); } };
+    grid.appendChild(el);
+  }
+}
+function updatePendingPill(){
+  const n = bookings.filter(b=>b.status==='Pending').length;
+  document.getElementById('pendingPill').textContent = n;
+}
+function bookingsForDate(dateStr){
+  return bookings.filter(b => new Date(b.scheduledStart).toISOString().slice(0,10) === dateStr);
+}
+
+function renderBoard(){
+  const dateStr = todayStr();
+  const dayBookings = bookingsForDate(dateStr).filter(b=>b.status!=='Cancelled' && b.status!=='Rejected');
+  document.getElementById('boardDateLabel').textContent = 'Dispatch Board — ' + new Date(dateStr+'T00:00:00').toLocaleDateString(undefined,{weekday:'long', month:'long', day:'numeric', year:'numeric'});
+  document.getElementById('boardCount').textContent = dayBookings.length + ' active transport(s)';
+
+  const container = document.getElementById('lanesContainer');
+  container.innerHTML='';
+  const dayStartHour = 0, dayEndHour = 24;
+  const totalMin = (dayEndHour-dayStartHour)*60;
+
+  AMBULANCES.forEach(amb=>{
+    const lane = document.createElement('div');
+    lane.className='lane';
+    lane.innerHTML = `<div class="laneLabel"><span class="dot" style="background:${amb.color}"></span>${amb.label}</div>`;
+    const scrollWrap = document.createElement('div');
+    scrollWrap.className='timelineScroll';
+    const timeline = document.createElement('div');
+    timeline.className='timeline';
+    for(let h=dayStartHour; h<=dayEndHour; h+=2){
+      const pct = ((h-dayStartHour)*60/totalMin)*100;
+      const tick = document.createElement('div'); tick.className='tick'; tick.style.left=pct+'%'; timeline.appendChild(tick);
+      const label = document.createElement('div'); label.className='tickLabel mono'; label.style.left=pct+'%';
+      label.textContent = String(h).padStart(2,'0')+':00'; timeline.appendChild(label);
+    }
+    const ambBookings = dayBookings.filter(b=>b.ambulance===amb.id);
+    ambBookings.forEach(b=>{
+      const s = new Date(b.scheduledStart), e = new Date(b.scheduledEnd);
+      const startMin = s.getHours()*60+s.getMinutes();
+      const endMin = e.getHours()*60+e.getMinutes();
+      const bufferEndMin = endMin + GAP_MS/60000;
+      const leftPct = (startMin/totalMin)*100;
+      const widthPct = Math.max(((endMin-startMin)/totalMin)*100, 1.5);
+      const bufWidthPct = Math.max(((bufferEndMin-endMin)/totalMin)*100, 0);
+      const block = document.createElement('div');
+      block.className = 'block status-'+b.status;
+      block.style.left = leftPct+'%'; block.style.width = widthPct+'%';
+      block.title = `${b.patientName} · ${b.procedure} · ${b.status} · click for full details`;
+      block.innerHTML = `<b>${maskName(b.patientName)}</b>${s.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`;
+      block.tabIndex = 0;
+      block.setAttribute('role','button');
+      block.setAttribute('aria-label', `${maskName(b.patientName)}, ${b.procedure}, ${b.status}, view details`);
+      block.onclick = ()=>openDetailModal(b.id);
+      block.onkeydown = (e)=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); openDetailModal(b.id); } };
+      timeline.appendChild(block);
+      if(bufWidthPct>0){
+        const buf = document.createElement('div');
+        buf.className='buffer'; buf.style.left = (leftPct+widthPct)+'%'; buf.style.width = bufWidthPct+'%';
+        buf.title='Mandatory 3-hour buffer';
+        timeline.appendChild(buf);
+      }
+    });
+    scrollWrap.appendChild(timeline);
+    lane.appendChild(scrollWrap);
+    container.appendChild(lane);
+  });
+  if(dayBookings.length===0){
+    const empty = document.createElement('div'); empty.className='emptyBoard';
+    empty.textContent = 'No transports scheduled for this date.'; container.appendChild(empty);
+  }
+}
+
+function clearListFilters(){
+  document.getElementById('listSearch').value='';
+  document.getElementById('listStatusFilter').value='';
+  renderList();
+}
+function renderList(){
+  const dateStr = todayStr();
+  document.getElementById('listDateLabel').textContent = new Date(dateStr+'T00:00:00').toLocaleDateString();
+  const searchEl = document.getElementById('listSearch');
+  const statusEl = document.getElementById('listStatusFilter');
+  const q = (searchEl ? searchEl.value.trim().toLowerCase() : '');
+  const statusFilter = statusEl ? statusEl.value : '';
+  let list = bookingsForDate(dateStr).sort((a,b)=>new Date(a.scheduledStart)-new Date(b.scheduledStart));
+  const totalForDate = list.length;
+  if(statusFilter) list = list.filter(b=>b.status===statusFilter);
+  if(q){
+    list = list.filter(b => [b.patientName,b.destination,b.procedure,b.callerName,b.callerWard].join(' ').toLowerCase().includes(q));
+  }
+  document.getElementById('listCount').textContent = list.length + ' of ' + totalForDate + ' record(s)';
+  const c = document.getElementById('listContainer');
+  if(totalForDate===0){ c.innerHTML = '<div class="empty">No bookings for this date yet. Click “+ New Transport” to add one.</div>'; return; }
+  if(list.length===0){ c.innerHTML = '<div class="empty">No bookings match your search or filter. <button class="clearFilters" style="margin-left:6px;" onclick="clearListFilters()">Clear filters</button></div>'; return; }
+  let html = `<table><thead><tr>
+    <th>Time</th><th>Ambulance</th><th>Patient</th><th>Procedure</th><th>Destination</th><th>Caller / Ward</th><th>Status</th><th></th>
+  </tr></thead><tbody>`;
+  list.forEach(b=>{
+    const s=new Date(b.scheduledStart), e=new Date(b.scheduledEnd);
+    const ambLabel = AMBULANCES.find(a=>a.id===b.ambulance)?.label || b.ambulance;
+    html += `<tr>
+      <td class="mono">${s.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}–${e.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</td>
+      <td>${ambLabel}</td>
+      <td>${maskName(b.patientName)}<br><span class="mono" style="color:var(--fog); font-size:10.5px;">${b.sex}, ${b.age}y</span></td>
+      <td>${b.procedure}</td>
+      <td>${b.destination}</td>
+      <td>${b.callerName}<br><span style="color:var(--fog); font-size:11px;">${b.callerWard} · ${b.callerPhone}</span></td>
+      <td><span class="badge ${b.status}">${b.status}</span></td>
+      <td class="rowActions">
+        <button onclick="openDetailModal('${b.id}')">View</button>
+        <button onclick="editBooking('${b.id}')">Edit</button>
+        ${b.status!=='Cancelled' && b.status!=='Rejected' ? `<button onclick="cancelBooking('${b.id}')">Cancel</button>`:''}
+        ${isSuperAdmin() && b.status==='Pending' ? `<button class="approveLink" onclick="approveBooking('${b.id}')">Approve</button><button class="rejectLink" onclick="rejectBooking('${b.id}')">Reject</button>` : ''}
+      </td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  c.innerHTML = html;
+}
+
+function renderApprovalQueue(){
+  if(!isSuperAdmin()) return;
+  const pending = bookings.filter(b=>b.status==='Pending').sort((a,b)=>new Date(a.scheduledStart)-new Date(b.scheduledStart));
+  const c = document.getElementById('queueContainer');
+  if(pending.length===0){ c.innerHTML = '<div class="empty">No requests awaiting approval.</div>'; return; }
+  const now = Date.now();
+  c.innerHTML = pending.map(b=>{
+    const start = new Date(b.scheduledStart).getTime();
+    const hrsUntil = (start-now)/3600000;
+    const ambLabel = AMBULANCES.find(a=>a.id===b.ambulance)?.label || b.ambulance;
+    const conflictNow = !isAmbulanceAvailable(b.ambulance, start, new Date(b.scheduledEnd).getTime(), b.id);
+    let flag = '';
+    if(hrsUntil < 0) flag = '<span class="flag">Overdue</span>';
+    else if(hrsUntil < 6) flag = '<span class="flag">Urgent — under 6h</span>';
+    if(conflictNow) flag += ' <span class="flag" style="background:var(--violet);">New conflict</span>';
+    return `<div class="queueCard">
+      <div class="queueTop">
+        <div>
+          <b>${maskName(b.patientName)}</b> ${flag}
+          <div class="queueMeta">${b.procedure} → ${b.destination}</div>
+          <div class="queueMeta mono">${new Date(b.scheduledStart).toLocaleString()} · ${ambLabel} · ${b.durationMin} min</div>
+          <div class="queueMeta">Requested by ${b.requestedBy} · Caller: ${b.callerName} (${b.callerWard})</div>
+        </div>
+        <span class="badge Pending">Pending</span>
+      </div>
+      <div class="queueActions">
+        <button class="btn btn-sm btn-approve" onclick="approveBooking('${b.id}')">Approve</button>
+        <button class="btn btn-sm btn-reject" onclick="rejectBooking('${b.id}')">Reject</button>
+        <button class="btn btn-sm btn-ghost" onclick="openDetailModal('${b.id}')">Full details</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderAudit(){
+  const c = document.getElementById('auditList');
+  if(auditLog.length===0){ c.innerHTML = '<div class="empty">No activity yet.</div>'; return; }
+  c.innerHTML = auditLog.slice(0,40).map(a=>`
+    <div class="auditItem">
+      <b>${a.action}</b> — ${a.details}
+      <span class="ts">${new Date(a.ts).toLocaleString()} · by ${a.by}${a.role?' ('+a.role+')':''} · ref ${a.bookingId}</span>
+    </div>`).join('');
+}
+</script>
+
+<script>
+/* ============ API BRIDGE ============
+ * Overrides the prototype's localStorage functions with real backend calls.
+ */// Auto-detect environment: relative URLs in production, localhost in dev
+const IS_DEV = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const API     = IS_DEV ? 'http://localhost:3000/api/v1' : '/api';
+const AUTH_URL = IS_DEV ? `${API}/auth/login` : `${API}/auth?action=login`;
+
+function authHeaders() {
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${localStorage.getItem('dispatch_token')}`
+  };
+}
+
+/* --- LOGIN --- */
+window.attemptLogin = async function() {
+  const u   = document.getElementById('loginUser').value.trim();
+  const p   = document.getElementById('loginPass').value;
+  const err = document.getElementById('loginError');
+  err.style.display = 'none';
+  try {
+    const res  = await fetch(AUTH_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: u, password: p })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Invalid credentials');
+    localStorage.setItem('dispatch_token', data.token);
+    window.currentUser = data.user;
+    document.getElementById('loginGate').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('roleBadge').textContent     = window.currentUser.role;
+    document.getElementById('userNameChip').textContent  = window.currentUser.username;
+    document.getElementById('approvalTabBtn').style.display = window.currentUser.role === 'SuperAdmin' ? 'inline-block' : 'none';
+    if (window.currentUser.role !== 'SuperAdmin') window.switchTab('board');
+    await window.init();
+  } catch (e) {
+    err.style.display = 'block';
+    err.textContent   = e.message;
+  }
+};
+
+/* --- LOGOUT --- */
+window.logout = function() {
+  localStorage.removeItem('dispatch_token');
+  window.currentUser = null;
+  window.bookings    = [];
+  window.auditLog    = [];
+  document.getElementById('app').style.display      = 'none';
+  document.getElementById('loginGate').style.display = 'flex';
+  document.getElementById('loginPass').value         = '';
+};
+
+/* --- LOAD DATA --- */
+window.loadData = async function() {
+  try {
+    const res = await fetch(`${API}/bookings`, { headers: authHeaders() });
+    if (res.status === 401) { window.logout(); return; }
+    const raw = await res.json();
+    window.bookings = Array.isArray(raw) ? raw.map(b => ({
+      id:            b.id,
+      patientName:   b.patient_name,
+      sex:           b.sex || '',
+      age:           b.age || 0,
+      destination:   b.destination || '',
+      procedure:     b.procedure || '',
+      notes:         b.notes || '',
+      scheduledStart:b.scheduled_start,
+      scheduledEnd:  b.scheduled_end,
+      durationMin:   Math.round((new Date(b.scheduled_end) - new Date(b.scheduled_start)) / 60000),
+      returnTrip:    b.return_trip || 'No',
+      ambulance:     b.ambulance_id,
+      callerName:    b.caller_name  || '',
+      callerPhone:   b.caller_phone || '',
+      callerWard:    b.caller_ward  || '',
+      status:        b.status,
+      cancelReason:  b.cancel_reason || '',
+      requestedBy:   b.created_by_name || '',
+      createdAt:     b.created_at,
+      updatedAt:     b.updated_at
+    })) : [];
+  } catch (e) { window.bookings = []; console.error('Bookings load error:', e); }
+
+  try {
+    const res = await fetch(`${API}/audit`, { headers: authHeaders() });
+    window.auditLog = await res.json();
+  } catch (e) { window.auditLog = []; console.error('Audit load error:', e); }
+};
+
+/* --- NO-OPS (backend handles persistence) --- */
+window.persistBookings = async function() {};
+window.persistAudit    = async function() {};
+window.logAction       = function() {};
+
+/* --- SAVE BOOKING (create + edit) --- */
+window.saveBooking = async function() {
+  const notice      = document.getElementById('formNotice');
+  notice.innerHTML  = '';
+  const name        = document.getElementById('f_patientName').value.trim();
+  const sex         = document.getElementById('f_sex').value;
+  const age         = document.getElementById('f_age').value;
+  const dest        = document.getElementById('f_destination').value.trim();
+  const proc        = document.getElementById('f_procedure').value.trim();
+  const notes       = document.getElementById('f_notes').value.trim();
+  const callerName  = document.getElementById('f_callerName').value.trim();
+  const callerPhone = document.getElementById('f_callerPhone').value.trim();
+  const callerWard  = document.getElementById('f_ward').value;
+  const returnTrip  = document.getElementById('f_return').value;
+  const t           = window.getFormTimes();
+  const editId      = document.getElementById('editId').value || null;
+
+  window.clearFieldErrors();
+  let firstInvalid = null;
+  const chk = (val, fid, eid) => { if (!val) { window.markInvalid(fid, eid); if (!firstInvalid) firstInvalid = fid; } };
+  chk(name,        'f_patientName', 'err_patientName');
+  chk(sex,         'f_sex',         'err_sex');
+  chk(age,         'f_age',         'err_age');
+  chk(dest,        'f_destination', 'err_destination');
+  chk(proc,        'f_procedure',   'err_procedure');
+  chk(callerName,  'f_callerName',  'err_callerName');
+  chk(callerPhone, 'f_callerPhone', 'err_callerPhone');
+  chk(callerWard,  'f_ward',        'err_ward');
+  if (!t)           { notice.innerHTML = '<div class="notice error">Please provide a valid date and time.</div>'; return; }
+  if (firstInvalid) { notice.innerHTML = '<div class="notice error">Please fix the highlighted fields below.</div>'; document.getElementById(firstInvalid).focus(); return; }
+  if (!window.currentSuggestedAmb) { notice.innerHTML = '<div class="notice error">No ambulance selected.</div>'; document.getElementById('err_amb').classList.add('show'); return; }
+
+  const payload = {
+    ambulance_id:    window.currentSuggestedAmb,
+    patient_name:    name, sex,
+    age:             parseInt(age, 10),
+    procedure:       proc, destination: dest, notes,
+    return_trip:     returnTrip,
+    caller_name:     callerName,
+    caller_phone:    callerPhone,
+    caller_ward:     callerWard,
+    scheduled_start: new Date(t.startMs).toISOString(),
+    scheduled_end:   new Date(t.endMs).toISOString()
+  };
+  if (editId && window.isSuperAdmin()) {
+    payload.status        = document.getElementById('f_status').value;
+    payload.cancel_reason = document.getElementById('f_cancelReason').value.trim();
+  }
+
+  try {
+    const url    = editId ? `${API}/bookings/${editId}` : `${API}/bookings`;
+    const method = editId ? 'PATCH' : 'POST';
+    const res    = await fetch(url, { method, headers: authHeaders(), body: JSON.stringify(payload) });
+    const data   = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to save booking');
+    window.toast(`Booking for ${name} ${editId ? 'updated' : 'submitted for approval'}.`, 'ok', editId ? 'Booking updated' : 'Transport requested');
+    window.closeBookingModal();
+    await window.loadData();
+    window.renderAll();
+  } catch (e) {
+    notice.innerHTML = `<div class="notice error">${e.message}</div>`;
+  }
+};
+
+/* --- CANCEL --- */
+window.cancelBooking = async function(id) {
+  const b = window.bookings.find(x => x.id === id);
+  if (!b) return;
+  const { confirmed, reason } = await window.askConfirm({
+    title: 'Cancel this transport?',
+    message: `This will cancel the transport for ${b.patientName} (${b.procedure}). This cannot be undone.`,
+    requireReason: true, confirmLabel: 'Cancel transport', danger: true
+  });
+  if (!confirmed) return;
+  await _patchStatus(id, 'Cancelled', reason);
+};
+
+/* --- APPROVE --- */
+window.approveBooking = async function(id) {
+  if (!window.requireSuperAdmin()) return;
+  const b = window.bookings.find(x => x.id === id);
+  if (!b) return;
+  const { confirmed } = await window.askConfirm({
+    title: 'Approve this transport?',
+    message: `Approve ${b.patientName}'s transport (${b.procedure}) on ${b.ambulance}?`,
+    confirmLabel: 'Approve'
+  });
+  if (!confirmed) return;
+  await _patchStatus(id, 'Approved');
+};
+
+/* --- REJECT --- */
+window.rejectBooking = async function(id) {
+  if (!window.requireSuperAdmin()) return;
+  const b = window.bookings.find(x => x.id === id);
+  if (!b) return;
+  const { confirmed, reason } = await window.askConfirm({
+    title: 'Reject this request?',
+    message: `Reject the transport for ${b.patientName}? A reason is required.`,
+    requireReason: true, confirmLabel: 'Reject request', danger: true
+  });
+  if (!confirmed) return;
+  await _patchStatus(id, 'Rejected', reason);
+};
+
+async function _patchStatus(id, status, reason) {
+  try {
+    const res  = await fetch(`${API}/bookings/${id}/status`, {
+      method: 'PATCH',
+      headers: authHeaders(),
+      body: JSON.stringify({ status, cancel_reason: reason || '' })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to update status');
+    window.toast(`Status updated to ${status}.`, 'ok', 'Updated');
+    await window.loadData();
+    window.renderAll();
+  } catch (e) {
+    window.toast(e.message, 'error', 'Error');
+  }
+}
+</script>
+</body>
+</html>
