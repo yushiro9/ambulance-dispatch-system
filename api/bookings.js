@@ -132,11 +132,12 @@ module.exports = async function handler(req, res) {
     }
 
     try {
+      const isDecision = ['Approved', 'Rejected'].includes(status);
       const result = await db.query(
         `UPDATE bookings 
-         SET status = $1, cancel_reason = $2, updated_at = now(), decided_by = $3, decided_at = CASE WHEN $1::text IN ('Approved','Rejected') THEN now() ELSE decided_at END
+         SET status = $1, cancel_reason = $2, updated_at = now(), decided_by = $3, decided_at = CASE WHEN $5::boolean THEN now() ELSE decided_at END
          WHERE id = $4 RETURNING *`,
-        [status, cancel_reason || null, ['Approved', 'Rejected'].includes(status) ? user.id : null, bookingId]
+        [status, cancel_reason || null, isDecision ? user.id : null, bookingId, isDecision]
       );
       if (result.rows.length === 0) return res.status(404).json({ error: 'Booking not found' });
 
