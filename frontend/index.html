@@ -138,15 +138,16 @@ header.topbar{
 .tick{position:absolute; top:0; bottom:0; width:1px; background:var(--line);}
 .tickLabel{position:absolute; top:2px; font-size:9px; color:var(--fog); font-family:'IBM Plex Mono',monospace; transform:translateX(2px);}
 .block{
-  position:absolute; top:10px; height:44px; border-radius:5px; padding:5px 8px; font-size:11px;
+  position:absolute; top:10px; height:44px; border-radius:5px; padding:5px 8px; font-size:10px;
   overflow:hidden; cursor:pointer; border:1px solid transparent; line-height:1.25;
+  white-space:nowrap; text-overflow:ellipsis;
 }
 .block.status-Pending{background:var(--amber-dim); border-color:var(--amber); color:#ffd98f;}
 .block.status-Approved{background:var(--teal-dim); border-color:var(--teal); color:#a6f2df;}
 .block.status-Completed{background:var(--panel-lighter); border-color:var(--line); color:var(--fog);}
 .block.status-Rejected{background:var(--red-dim); border-color:var(--red); color:#ffb3a0;}
 .block.status-Cancelled{background:var(--red-dim); border-color:var(--red); color:#ffb3a0; text-decoration:line-through; opacity:0.7;}
-.block b{display:block; font-weight:600; font-size:11.5px;}
+.block b{display:block; font-weight:600; font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
 .buffer{position:absolute; top:10px; height:44px; background:repeating-linear-gradient(45deg, rgba(255,255,255,0.03), rgba(255,255,255,0.03) 4px, transparent 4px, transparent 8px);}
 .emptyBoard{color:var(--fog); font-size:13px; padding:14px 0;}
 
