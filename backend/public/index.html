@@ -100,11 +100,11 @@ body{
 
 /* ---------- App shell ---------- */
 
-#app{display:none; max-width:1220px; margin:0 auto; padding:0 20px 60px;}
+#app{display:none; max-width:1440px; margin:0 auto; padding:0 32px 60px;}
 
 header.topbar{
   display:flex; align-items:center; justify-content:space-between;
-  padding:22px 0 18px; border-bottom:1px solid var(--line); margin-bottom:18px; gap:16px; flex-wrap:wrap;
+  padding:24px 0 20px; border-bottom:1px solid var(--line); margin-bottom:18px; gap:20px; flex-wrap:wrap;
 }
 
 .brand{display:flex; align-items:center; gap:12px;}
@@ -118,7 +118,9 @@ header.topbar{
 
 .brand .tag{color:var(--fog); font-size:11px; letter-spacing:0.08em; text-transform:uppercase; margin-top:3px;}
 
-.topActions{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
+.topActions{display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+
+.navSep{width:1px; height:22px; background:var(--line); flex-shrink:0;}
 
 .dateNav{display:flex; align-items:center; gap:8px; background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:6px 10px;}
 
@@ -571,6 +573,7 @@ textarea:focus-visible, [tabindex]:focus-visible, .ambOpt:focus-visible, .tabBtn
         <span>Privacy mode</span>
         <div class="switch" id="privSwitch"></div>
       </div>
+      <div class="navSep"></div>
       <div class="dateNav">
         <button onclick="shiftDate(-1)" aria-label="Previous day">‹</button>
         <label for="boardDate" class="visually-hidden">Board date</label>
@@ -578,7 +581,9 @@ textarea:focus-visible, [tabindex]:focus-visible, .ambOpt:focus-visible, .tabBtn
         <button onclick="shiftDate(1)" aria-label="Next day">›</button>
       </div>
       <button class="btn btn-ghost" onclick="toggleAudit()">Audit log</button>
+      <div class="navSep"></div>
       <button class="btn btn-accent" onclick="openBookingModal()">+ New Transport</button>
+      <div class="navSep"></div>
       <div class="userChip">
         <span class="roleBadge" id="roleBadge"></span>
         <b id="userNameChip"></b>
