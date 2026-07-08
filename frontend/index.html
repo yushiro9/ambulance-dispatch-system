@@ -1636,6 +1636,8 @@
             <option value="Yes">Yes</option>
           </select>
         </div>
+        <div class="field"><label for="f_receivedDate">Date received</label><input id="f_receivedDate" type="date"></div>
+        <div class="field"><label for="f_receivedTime">Time received</label><input id="f_receivedTime" type="time"></div>
       </div>
       <div id="ambSuggest"></div>
       <div class="ruleInfo" style="margin-bottom:10px;">Each vehicle can only carry one patient at a time. A strict
@@ -1657,20 +1659,19 @@
           <div class="fieldErr" id="err_callerPhone">Phone / extension is required.</div>
         </div>
       </div>
+      <datalist id="wardSuggestions">
+        <option>Ward 1 – Medicine</option>
+        <option>Ward 2 – Surgery</option>
+        <option>Ward 3 – Pediatrics</option>
+        <option>Ward 4 – OB-Gyne</option>
+        <option>Dialysis Unit</option>
+        <option>Oncology / Chemo Unit</option>
+        <option>OPD</option>
+        <option>ER</option>
+      </datalist>
       <div class="field"><label for="f_ward">Ward of caller / endorser<span class="reqStar">*</span></label>
-        <select id="f_ward">
-          <option value="">Select ward</option>
-          <option>Ward 1 – Medicine</option>
-          <option>Ward 2 – Surgery</option>
-          <option>Ward 3 – Pediatrics</option>
-          <option>Ward 4 – OB-Gyne</option>
-          <option>Dialysis Unit</option>
-          <option>Oncology / Chemo Unit</option>
-          <option>OPD</option>
-          <option>ER</option>
-          <option>Other</option>
-        </select>
-        <div class="fieldErr" id="err_ward">Please select a ward.</div>
+        <input id="f_ward" type="text" list="wardSuggestions" placeholder="e.g. Ward 1 – Medicine, OPD, ER…" autocomplete="off">
+        <div class="fieldErr" id="err_ward">Ward is required.</div>
       </div>
 
       <div class="sectionLabel" id="statusSectionLabel" style="display:none;">Status (Super Admin only)</div>
@@ -1997,6 +1998,14 @@
         document.getElementById('f_callerPhone').value = prefillBooking.callerPhone;
         document.getElementById('f_ward').value = prefillBooking.callerWard;
         document.getElementById('f_status').value = prefillBooking.status;
+        if (prefillBooking.receivedAt) {
+          const rdt = new Date(prefillBooking.receivedAt);
+          document.getElementById('f_receivedDate').value = getLocalDateString(rdt);
+          document.getElementById('f_receivedTime').value = rdt.toTimeString().slice(0, 5);
+        } else {
+          document.getElementById('f_receivedDate').value = '';
+          document.getElementById('f_receivedTime').value = '';
+        }
         currentSuggestedAmb = prefillBooking.ambulance;
         if (prefillBooking.status === 'Cancelled' || prefillBooking.status === 'Rejected') {
           document.getElementById('cancelReasonWrap').style.display = 'block';
@@ -2014,6 +2023,8 @@
         document.getElementById('f_duration').value = 60;
         document.getElementById('f_return').value = 'No';
         document.getElementById('f_status').value = 'Pending';
+        document.getElementById('f_receivedDate').value = getLocalDateString(new Date());
+        const nowTime = new Date(); document.getElementById('f_receivedTime').value = String(nowTime.getHours()).padStart(2,'0') + ':' + String(nowTime.getMinutes()).padStart(2,'0');
       }
       document.getElementById('f_status').onchange = () => {
         const v = document.getElementById('f_status').value;
@@ -2264,6 +2275,7 @@
       html += row('Destination', b.destination);
       html += row('Procedure needed', b.procedure);
       html += row('Scheduled date & time', `${s.toLocaleString()} → ${e.toLocaleTimeString()}`);
+      if (b.receivedAt) html += row('Received on', new Date(b.receivedAt).toLocaleString(undefined, { month: 'long', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }));
       html += row('Assigned ambulance', ambLabel);
       html += row('Return trip needed', b.returnTrip);
       html += row('Caller / endorser', b.callerName);
@@ -2637,6 +2649,7 @@
           callerName: b.caller_name || '',
           callerPhone: b.caller_phone || '',
           callerWard: b.caller_ward || '',
+          receivedAt: b.received_at || null,
           status: b.status,
           cancelReason: b.cancel_reason || '',
           requestedBy: b.created_by_name || '',
@@ -2698,6 +2711,10 @@
       if (firstInvalid) { notice.innerHTML = '<div class="notice error">Please fix the highlighted fields below.</div>'; document.getElementById(firstInvalid).focus(); return; }
       if (!window.currentSuggestedAmb) { notice.innerHTML = '<div class="notice error">No ambulance selected.</div>'; document.getElementById('err_amb').classList.add('show'); return; }
 
+      const recDate = document.getElementById('f_receivedDate').value;
+      const recTime = document.getElementById('f_receivedTime').value;
+      const receivedAt = (recDate && recTime) ? new Date(recDate + 'T' + recTime + ':00').toISOString() : null;
+
       const payload = {
         ambulance_id: window.currentSuggestedAmb,
         patient_name: name, sex,
@@ -2708,7 +2725,8 @@
         caller_phone: callerPhone,
         caller_ward: callerWard,
         scheduled_start: new Date(t.startMs).toISOString(),
-        scheduled_end: new Date(t.endMs).toISOString()
+        scheduled_end: new Date(t.endMs).toISOString(),
+        received_at: receivedAt
       };
       if (editId && window.isSuperAdmin()) {
         payload.status = document.getElementById('f_status').value;

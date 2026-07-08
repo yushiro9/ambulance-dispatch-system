@@ -14,6 +14,7 @@ const bookingSchema = z.object({
   caller_ward: z.string().optional(),
   scheduled_start: z.string().datetime(),
   scheduled_end: z.string().datetime(),
+  received_at: z.string().optional().nullable(),
 });
 
 // Enforce 3 hour gap and one patient per vehicle
@@ -53,10 +54,12 @@ router.post('/', requireAuth, async (req, res) => {
     const data = bookingSchema.parse(req.body);
     await validateAvailability(data.ambulance_id, data.scheduled_start, data.scheduled_end);
 
+    const receivedAt = data.received_at || null;
+
     const result = await db.query(
-      `INSERT INTO bookings (ambulance_id, patient_name, procedure, destination, caller_ward, scheduled_start, scheduled_end, status, created_by)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, 'Pending', $8) RETURNING *`,
-      [data.ambulance_id, data.patient_name, data.procedure, data.destination, data.caller_ward, data.scheduled_start, data.scheduled_end, req.user.id]
+      `INSERT INTO bookings (ambulance_id, patient_name, procedure, destination, caller_ward, scheduled_start, scheduled_end, status, created_by, received_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, 'Pending', $8, $9) RETURNING *`,
+      [data.ambulance_id, data.patient_name, data.procedure, data.destination, data.caller_ward, data.scheduled_start, data.scheduled_end, req.user.id, receivedAt]
     );
 
     const booking = result.rows[0];
