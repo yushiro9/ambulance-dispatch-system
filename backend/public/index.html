@@ -501,7 +501,19 @@ textarea:focus-visible, [tabindex]:focus-visible, .ambOpt:focus-visible, .tabBtn
   .timeline, .tick, .tickLabel, .block, .buffer{ min-width:900px; }
   .timelineScroll .timeline{width:900px;}
 }
-</style>
+    @media print {
+      body { background: white; color: black; }
+      #app, #loginGate, .skipLink, #toastRegion, .overlay { display: none !important; }
+      #detailOverlay.show { display: block !important; position: static; background: transparent; padding: 0; overflow: visible; }
+      #detailOverlay .modal { border: none; box-shadow: none; max-width: 100%; padding: 0; background: transparent; margin: 0; }
+      .modalActions { display: none !important; }
+      .detailGrid { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 10px; }
+      .detailItem { border: 1px solid #ccc; padding: 8px; border-radius: 4px; break-inside: avoid; page-break-inside: avoid; }
+      .k { color: #555; }
+      .v { color: #000; }
+      .trailBox { max-height: none !important; overflow: visible !important; border: 1px solid #ccc; }
+    }
+  </style>
 </head>
 <body>
 
@@ -758,7 +770,7 @@ textarea:focus-visible, [tabindex]:focus-visible, .ambOpt:focus-visible, .tabBtn
     <p class="sub" id="detailRef"></p>
     <div id="detailBody"></div>
     <div class="modalActions">
-      <button class="btn btn-ghost" onclick="closeDetailModal()">Close</button>
+      <button class="btn btn-ghost" onclick="window.print()">Print</button><button class="btn btn-ghost" onclick="closeDetailModal()">Close</button>
     </div>
   </div>
 </div>
