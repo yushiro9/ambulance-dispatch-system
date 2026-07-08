@@ -1913,11 +1913,11 @@
       const lanes = document.getElementById('lanesContainer');
       lanes.innerHTML = '<div class="loadingRow"><span class="spinner" aria-hidden="true"></span>Loading today\'s schedule…</div>';
       await loadData();
-      const today = new Date().toISOString().slice(0, 10);
+      const today = getLocalDateString(new Date());
       document.getElementById('boardDate').value = today;
       renderAll();
     }
-    function todayStr() { return document.getElementById('boardDate').value || new Date().toISOString().slice(0, 10); }
+    function todayStr() { return document.getElementById('boardDate').value || getLocalDateString(new Date()); }
     function shiftDate(delta) {
       const d = new Date(document.getElementById('boardDate').value);
       d.setDate(d.getDate() + delta);
@@ -1989,7 +1989,7 @@
         document.getElementById('f_procedure').value = prefillBooking.procedure;
         document.getElementById('f_notes').value = prefillBooking.notes || '';
         const dt = new Date(prefillBooking.scheduledStart);
-        document.getElementById('f_date').value = dt.toISOString().slice(0, 10);
+        document.getElementById('f_date').value = getLocalDateString(dt);
         document.getElementById('f_time').value = dt.toTimeString().slice(0, 5);
         document.getElementById('f_duration').value = prefillBooking.durationMin;
         document.getElementById('f_return').value = prefillBooking.returnTrip || 'No';
@@ -2282,6 +2282,10 @@
     }
     function closeDetailModal() { closeOverlayEl('detailOverlay'); }
 
+    function getLocalDateString(d) {
+      if (!d) d = new Date();
+      return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+    }
     /* ============ RENDER ============ */
     function renderAll() {
       renderBoard();
@@ -2337,20 +2341,20 @@
       const firstDay = new Date(year, month, 1);
       const startOffset = firstDay.getDay();
       const daysInMonth = new Date(year, month + 1, 0).getDate();
-      const todayIso = todayStr ? new Date().toISOString().slice(0, 10) : '';
+      const todayIso = todayStr ? getLocalDateString(new Date()) : '';
       for (let i = 0; i < startOffset; i++) {
         const el = document.createElement('div'); el.className = 'calDay empty'; grid.appendChild(el);
       }
       const statusLabel = { open: 'Open', limited: 'Limited', full: 'Full' };
       for (let day = 1; day <= daysInMonth; day++) {
         const dateObj = new Date(year, month, day);
-        const dateStr = dateObj.toISOString().slice(0, 10);
+        const dateStr = getLocalDateString(dateObj);
         const stat = getDateAvailabilityStatus(dateStr);
         const el = document.createElement('div');
         el.className = 'calDay' + (dateStr === todayIso ? ' today' : '');
         el.tabIndex = 0;
         el.setAttribute('role', 'button');
-        el.setAttribute('aria-label', `${dateObj.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}, ${statusLabel[stat.status]}, ${stat.count} booking(s). Activate to view this day's dispatch board.`);
+        el.setAttribute('aria-label', `${dateObj.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}, ${statusLabel[stat.status]}, ${stat.count} booking(s). Activate to view this day's dispatch board.`);
         el.innerHTML = `<div class="num">${day}</div><div class="cnt">${stat.count ? stat.count + ' booking' + (stat.count > 1 ? 's' : '') : 'No bookings'}</div><div class="stat ${stat.status}">${statusLabel[stat.status]}</div>`;
         el.onclick = () => jumpToDate(dateStr);
         el.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); jumpToDate(dateStr); } };
@@ -2362,13 +2366,13 @@
       document.getElementById('pendingPill').textContent = n;
     }
     function bookingsForDate(dateStr) {
-      return bookings.filter(b => new Date(b.scheduledStart).toISOString().slice(0, 10) === dateStr);
+      return bookings.filter(b => getLocalDateString(new Date(b.scheduledStart)) === dateStr);
     }
 
     function renderBoard() {
       const dateStr = todayStr();
       const dayBookings = bookingsForDate(dateStr).filter(b => b.status !== 'Cancelled' && b.status !== 'Rejected');
-      document.getElementById('boardDateLabel').textContent = 'Dispatch Board — ' + new Date(dateStr + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+      document.getElementById('boardDateLabel').textContent = 'Dispatch Board — ' + new Date(dateStr + 'T00:00:00').toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });
       document.getElementById('boardCount').textContent = dayBookings.length + ' active transport(s)';
 
       const container = document.getElementById('lanesContainer');
@@ -2434,7 +2438,7 @@
     }
     function renderList() {
       const dateStr = todayStr();
-      document.getElementById('listDateLabel').textContent = new Date(dateStr + 'T00:00:00').toLocaleDateString();
+      document.getElementById("listDateLabel").textContent = new Date(dateStr + "T00:00:00").toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });
       const searchEl = document.getElementById('listSearch');
       const statusEl = document.getElementById('listStatusFilter');
       const q = (searchEl ? searchEl.value.trim().toLowerCase() : '');
